@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <title>今日行程</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">DAILY SCHEDULE</p>
+          <h1>今日行程</h1>
+          <p id="today-label" class="today-label"></p>
+        </div>
+        <button id="add-event-button" class="primary-button" type="button">
+          <span class="add-icon" aria-hidden="true"></span>
+          新增行程
+        </button>
+      </header>
+
+      <div id="storage-notice" class="notice" role="alert" hidden></div>
+
+      <section class="schedule-card" aria-labelledby="schedule-heading">
+        <div class="schedule-heading-row">
+          <div>
+            <h2 id="schedule-heading">時間安排</h2>
+            <p>06:00–24:00</p>
+          </div>
+          <p id="event-count" class="event-count" aria-live="polite"></p>
+        </div>
+
+        <div id="timeline" class="timeline" aria-label="今日時間軸">
+          <div id="timeline-grid" class="timeline-grid" aria-hidden="true"></div>
+          <div id="events-layer" class="events-layer"></div>
+          <div id="current-time-line" class="current-time-line" hidden>
+            <span id="current-time-label"></span>
+          </div>
+          <div id="empty-backdrop" class="empty-backdrop" aria-hidden="true" hidden></div>
+          <div id="empty-state" class="empty-state" hidden>
+            <div class="empty-icon" aria-hidden="true">☀</div>
+            <h3>今天還沒有行程</h3>
+            <p>安排第一個時段，讓今天更有節奏。</p>
+            <button id="empty-add-button" class="secondary-button" type="button">新增第一筆行程</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <dialog id="event-dialog" class="event-dialog" aria-labelledby="dialog-title">
+      <form id="event-form" method="dialog" novalidate>
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">SCHEDULE ITEM</p>
+            <h2 id="dialog-title">新增行程</h2>
+          </div>
+          <button id="close-dialog-button" class="icon-button" type="button" aria-label="關閉">×</button>
+        </div>
+
+        <div class="form-body">
+          <label class="field full-width">
+            <span>行程標題 <em aria-hidden="true">*</em></span>
+            <input id="event-title" name="title" type="text" maxlength="80" autocomplete="off" required />
+          </label>
+
+          <div class="time-fields">
+            <label class="field">
+              <span>開始時間</span>
+              <select id="event-start" name="start" required></select>
+            </label>
+            <span class="time-separator" aria-hidden="true">→</span>
+            <label class="field">
+              <span>結束時間</span>
+              <select id="event-end" name="end" required></select>
+            </label>
+          </div>
+
+          <fieldset class="color-field full-width">
+            <legend>顏色</legend>
+            <div class="color-options">
+              <label class="color-option green">
+                <input type="radio" name="color" value="green" aria-label="綠色" checked />
+                <span class="color-swatch green" aria-hidden="true"></span>
+              </label>
+              <label class="color-option red">
+                <input type="radio" name="color" value="red" aria-label="紅色" />
+                <span class="color-swatch red" aria-hidden="true"></span>
+              </label>
+              <label class="color-option blue">
+                <input type="radio" name="color" value="blue" aria-label="藍色" />
+                <span class="color-swatch blue" aria-hidden="true"></span>
+              </label>
+            </div>
+          </fieldset>
+
+          <label class="field full-width">
+            <span>備註</span>
+            <textarea id="event-notes" name="notes" rows="4" maxlength="500" placeholder="補充地點、準備事項或其他資訊（選填）"></textarea>
+          </label>
+
+          <p id="form-error" class="form-message error-message" role="alert" hidden></p>
+          <p id="conflict-warning" class="form-message warning-message" role="status" hidden></p>
+        </div>
+
+        <div class="dialog-actions">
+          <button id="cancel-button" class="text-button" type="button">取消</button>
+          <button class="primary-button" type="submit">儲存行程</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="script.js"></script>
+  </body>
+</html>
