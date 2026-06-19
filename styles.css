@@ -32,6 +32,20 @@ body {
     var(--canvas);
 }
 
+html.modal-open,
+body.modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.modal-open {
+  position: fixed;
+  top: var(--locked-scroll-offset, 0);
+  right: 0;
+  left: 0;
+  width: 100%;
+}
+
 button,
 input,
 select,

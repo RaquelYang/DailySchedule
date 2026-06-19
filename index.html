@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" href="icons/icon-192.png?v=2" />
     <link rel="apple-touch-icon" href="icons/icon-180.png?v=2" />
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=8" />
   </head>
   <body>
     <main class="app-shell">
@@ -51,16 +51,17 @@
           <div id="current-time-line" class="current-time-line" hidden>
             <span id="current-time-label"></span>
           </div>
-          <div id="empty-backdrop" class="empty-backdrop" aria-hidden="true" hidden></div>
-          <div id="empty-state" class="empty-state" hidden>
-            <div class="empty-icon" aria-hidden="true">☀</div>
-            <h3>今天還沒有行程</h3>
-            <p>安排第一個時段，讓今天更有節奏。</p>
-            <button id="empty-add-button" class="secondary-button" type="button">新增第一筆行程</button>
-          </div>
         </div>
       </section>
     </main>
+
+    <div id="empty-backdrop" class="empty-backdrop" aria-hidden="true" hidden></div>
+    <div id="empty-state" class="empty-state" role="dialog" aria-modal="true" aria-labelledby="empty-state-title" hidden>
+      <div class="empty-icon" aria-hidden="true">☀</div>
+      <h3 id="empty-state-title">今天還沒有行程</h3>
+      <p>安排第一個時段，讓今天更有節奏。</p>
+      <button id="empty-add-button" class="secondary-button" type="button">新增第一筆行程</button>
+    </div>
 
     <button id="add-event-button" class="primary-button" type="button">
       <span class="add-icon" aria-hidden="true"></span>
@@ -171,6 +172,6 @@
       </div>
     </dialog>
 
-    <script src="script.js?v=4"></script>
+    <script src="script.js?v=6"></script>
   </body>
 </html>

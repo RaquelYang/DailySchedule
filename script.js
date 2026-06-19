@@ -11,6 +11,7 @@
   const VALID_COLORS = new Set(["green", "red", "blue"]);
 
   const elements = {
+    appShell: document.querySelector(".app-shell"),
     todayLabel: document.querySelector("#today-label"),
     eventCount: document.querySelector("#event-count"),
     timeline: document.querySelector("#timeline"),
@@ -48,6 +49,8 @@
   let editingId = null;
   let dragState = null;
   let suppressClickUntil = 0;
+  let pageScrollLocked = false;
+  let lockedScrollY = 0;
 
   function getLocalDateKey(date = new Date()) {
     const year = date.getFullYear();
@@ -274,6 +277,27 @@
     elements.eventCount.textContent = events.length ? `${events.length} 筆行程` : "尚無行程";
     elements.todayLabel.textContent = formatToday();
     updateCurrentTime();
+    syncModalState();
+  }
+
+  function syncModalState() {
+    const emptyModalOpen = !elements.emptyState.hidden;
+    const modalOpen = emptyModalOpen || elements.dialog.open || elements.infoDialog.open;
+    if (modalOpen && !pageScrollLocked) {
+      lockedScrollY = window.scrollY;
+      document.body.style.setProperty("--locked-scroll-offset", `-${lockedScrollY}px`);
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      pageScrollLocked = true;
+    } else if (!modalOpen && pageScrollLocked) {
+      document.documentElement.classList.remove("modal-open");
+      document.body.classList.remove("modal-open");
+      document.body.style.removeProperty("--locked-scroll-offset");
+      window.scrollTo(0, lockedScrollY);
+      pageScrollLocked = false;
+    }
+    elements.appShell.inert = emptyModalOpen;
+    elements.addButton.inert = emptyModalOpen;
   }
 
   function getDefaultTimes() {
@@ -297,11 +321,12 @@
     elements.emptyBackdrop.hidden = true;
     elements.emptyState.hidden = true;
     elements.dialog.showModal();
+    syncModalState();
     requestAnimationFrame(() => elements.title.focus());
   }
 
   function openCreateDialogAtPosition(pointerEvent) {
-    if (pointerEvent.target.closest(".event-card, button, .empty-state")) return;
+    if (pointerEvent.target.closest(".event-card, button, .empty-state, .empty-backdrop")) return;
 
     const timelineRect = elements.timeline.getBoundingClientRect();
     const relativeY = Math.max(0, Math.min(pointerEvent.clientY - timelineRect.top, timelineRect.height));
@@ -335,6 +360,7 @@
     clearFormMessages();
     updateConflictWarning();
     elements.dialog.showModal();
+    syncModalState();
     requestAnimationFrame(() => elements.title.focus());
   }
 
@@ -345,6 +371,7 @@
 
   function openInfoDialog() {
     elements.infoDialog.showModal();
+    syncModalState();
     requestAnimationFrame(() => elements.closeInfoButton.focus());
   }
 
@@ -617,6 +644,12 @@
 
   elements.addButton.addEventListener("click", () => openCreateDialog());
   elements.emptyAddButton.addEventListener("click", () => openCreateDialog());
+  ["pointerdown", "click", "dblclick"].forEach((eventName) => {
+    elements.emptyBackdrop.addEventListener(eventName, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+  });
   elements.timeline.addEventListener("dblclick", openCreateDialogAtPosition);
   elements.closeButton.addEventListener("click", closeDialog);
   elements.cancelButton.addEventListener("click", closeDialog);
@@ -633,6 +666,7 @@
   elements.infoDialog.addEventListener("click", (event) => {
     if (event.target === elements.infoDialog) closeInfoDialog();
   });
+  elements.infoDialog.addEventListener("close", syncModalState);
   elements.eventsLayer.addEventListener("pointerdown", handleDragPointerDown);
   elements.eventsLayer.addEventListener("pointermove", handleDragPointerMove);
   elements.eventsLayer.addEventListener("pointerup", (event) => finishDrag(event));

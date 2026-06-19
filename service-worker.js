@@ -1,9 +1,9 @@
-const CACHE_NAME = "daily-schedule-v7";
+const CACHE_NAME = "daily-schedule-v9";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./styles.css?v=6",
-  "./script.js?v=4",
+  "./styles.css?v=8",
+  "./script.js?v=6",
   "./manifest.webmanifest",
   "./icons/icon-180.png",
   "./icons/icon-192.png",
