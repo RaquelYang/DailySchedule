@@ -10,17 +10,27 @@
     <meta name="apple-mobile-web-app-title" content="今日行程" />
     <title>今日行程</title>
     <link rel="manifest" href="manifest.webmanifest" />
-    <link rel="icon" href="icons/icon-192.png" />
-    <link rel="apple-touch-icon" href="icons/icon-180.png" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="icon" href="icons/icon-192.png?v=2" />
+    <link rel="apple-touch-icon" href="icons/icon-180.png?v=2" />
+    <link rel="stylesheet" href="styles.css?v=5" />
   </head>
   <body>
     <main class="app-shell">
       <header class="app-header">
-        <div>
-          <p class="eyebrow">DAILY SCHEDULE</p>
-          <h1>今日行程</h1>
-          <p id="today-label" class="today-label"></p>
+        <div class="app-brand">
+          <div>
+            <p class="eyebrow">DAILY SCHEDULE</p>
+            <div class="title-row">
+              <h1>今日行程</h1>
+              <button id="info-button" class="info-button" type="button" aria-label="開啟使用說明" title="使用說明">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"></circle>
+                  <path d="M12 11v6M12 7.5h.01"></path>
+                </svg>
+              </button>
+            </div>
+            <p id="today-label" class="today-label"></p>
+          </div>
         </div>
         <button id="add-event-button" class="primary-button" type="button">
           <span class="add-icon" aria-hidden="true"></span>
@@ -123,6 +133,43 @@
       </form>
     </dialog>
 
-    <script src="script.js"></script>
+    <dialog id="info-dialog" class="event-dialog info-dialog" aria-labelledby="info-dialog-title">
+      <div class="dialog-header">
+        <div>
+          <p class="eyebrow">HOW TO USE</p>
+          <h2 id="info-dialog-title">如何使用今日行程</h2>
+        </div>
+        <button id="close-info-dialog-button" class="icon-button" type="button" aria-label="關閉使用說明">×</button>
+      </div>
+
+      <div class="info-body">
+        <ol class="usage-list">
+          <li>
+            <strong>新增行程</strong>
+            <span>點擊右下角的「＋」，填寫標題、時間、顏色與備註後儲存。</span>
+          </li>
+          <li>
+            <strong>編輯或刪除</strong>
+            <span>點擊行程卡片即可編輯；點擊卡片右上角的「×」可刪除。</span>
+          </li>
+          <li>
+            <strong>移動時段</strong>
+            <span>長按行程卡片後上下拖曳，時間會以 30 分鐘為單位調整。</span>
+          </li>
+          <li>
+            <strong>處理重疊</strong>
+            <span>行程可以重疊；儲存前會顯示提醒，時間軸上也會標示重疊狀態。</span>
+          </li>
+        </ol>
+
+        <p class="privacy-note"><strong>資料儲存：</strong>行程只會保存在目前瀏覽器的本機儲存空間，不會上傳到伺服器。清除網站資料或更換瀏覽器後，既有行程可能無法復原。</p>
+      </div>
+
+      <div class="dialog-actions">
+        <button id="confirm-info-dialog-button" class="primary-button" type="button">知道了</button>
+      </div>
+    </dialog>
+
+    <script src="script.js?v=4"></script>
   </body>
 </html>

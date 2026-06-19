@@ -36,6 +36,10 @@
     emptyAddButton: document.querySelector("#empty-add-button"),
     closeButton: document.querySelector("#close-dialog-button"),
     cancelButton: document.querySelector("#cancel-button"),
+    infoButton: document.querySelector("#info-button"),
+    infoDialog: document.querySelector("#info-dialog"),
+    closeInfoButton: document.querySelector("#close-info-dialog-button"),
+    confirmInfoButton: document.querySelector("#confirm-info-dialog-button"),
   };
 
   let storageAvailable = true;
@@ -339,6 +343,15 @@
     editingId = null;
   }
 
+  function openInfoDialog() {
+    elements.infoDialog.showModal();
+    requestAnimationFrame(() => elements.closeInfoButton.focus());
+  }
+
+  function closeInfoDialog() {
+    elements.infoDialog.close();
+  }
+
   function clearFormMessages() {
     elements.formError.hidden = true;
     elements.formError.textContent = "";
@@ -607,6 +620,9 @@
   elements.timeline.addEventListener("dblclick", openCreateDialogAtPosition);
   elements.closeButton.addEventListener("click", closeDialog);
   elements.cancelButton.addEventListener("click", closeDialog);
+  elements.infoButton.addEventListener("click", openInfoDialog);
+  elements.closeInfoButton.addEventListener("click", closeInfoDialog);
+  elements.confirmInfoButton.addEventListener("click", closeInfoDialog);
   elements.form.addEventListener("submit", handleSubmit);
   elements.start.addEventListener("change", updateConflictWarning);
   elements.end.addEventListener("change", updateConflictWarning);
@@ -614,6 +630,9 @@
     if (event.target === elements.dialog) closeDialog();
   });
   elements.dialog.addEventListener("close", render);
+  elements.infoDialog.addEventListener("click", (event) => {
+    if (event.target === elements.infoDialog) closeInfoDialog();
+  });
   elements.eventsLayer.addEventListener("pointerdown", handleDragPointerDown);
   elements.eventsLayer.addEventListener("pointermove", handleDragPointerMove);
   elements.eventsLayer.addEventListener("pointerup", (event) => finishDrag(event));
