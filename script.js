@@ -282,11 +282,10 @@
     return { start: minutesToTime(start), end: minutesToTime(end) };
   }
 
-  function openCreateDialog() {
+  function openCreateDialog(defaults = getDefaultTimes()) {
     editingId = null;
     removeLegacyTimeOptions();
     elements.form.reset();
-    const defaults = getDefaultTimes();
     elements.start.value = defaults.start;
     elements.end.value = defaults.end;
     elements.dialogTitle.textContent = "新增行程";
@@ -295,6 +294,25 @@
     elements.emptyState.hidden = true;
     elements.dialog.showModal();
     requestAnimationFrame(() => elements.title.focus());
+  }
+
+  function openCreateDialogAtPosition(pointerEvent) {
+    if (pointerEvent.target.closest(".event-card, button, .empty-state")) return;
+
+    const timelineRect = elements.timeline.getBoundingClientRect();
+    const relativeY = Math.max(0, Math.min(pointerEvent.clientY - timelineRect.top, timelineRect.height));
+    const positionMinutes = (relativeY / timelineRect.height) * MINUTES_PER_DAY_VIEW;
+    const clickedMinutes = START_HOUR * 60 + positionMinutes;
+    const start = Math.max(
+      START_HOUR * 60,
+      Math.min(Math.round(clickedMinutes / TIME_STEP) * TIME_STEP, END_HOUR * 60 - TIME_STEP),
+    );
+    const end = Math.min(start + 60, END_HOUR * 60);
+
+    openCreateDialog({
+      start: minutesToTime(start),
+      end: minutesToTime(end),
+    });
   }
 
   function openEditDialog(id) {
@@ -584,8 +602,9 @@
     updateCurrentTime();
   }
 
-  elements.addButton.addEventListener("click", openCreateDialog);
-  elements.emptyAddButton.addEventListener("click", openCreateDialog);
+  elements.addButton.addEventListener("click", () => openCreateDialog());
+  elements.emptyAddButton.addEventListener("click", () => openCreateDialog());
+  elements.timeline.addEventListener("dblclick", openCreateDialogAtPosition);
   elements.closeButton.addEventListener("click", closeDialog);
   elements.cancelButton.addEventListener("click", closeDialog);
   elements.form.addEventListener("submit", handleSubmit);
