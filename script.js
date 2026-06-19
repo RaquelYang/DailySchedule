@@ -158,6 +158,12 @@
       row.innerHTML = `<span class="hour-label">${String(hour).padStart(2, "0")}:00</span><span class="half-hour-line"></span>`;
       fragment.append(row);
     }
+
+    const endRow = document.createElement("div");
+    endRow.className = "hour-row end-hour-row";
+    endRow.style.top = `calc(var(--hour-height) * ${END_HOUR - START_HOUR})`;
+    endRow.innerHTML = `<span class="hour-label">${String(END_HOUR).padStart(2, "0")}:00</span>`;
+    fragment.append(endRow);
     elements.timelineGrid.append(fragment);
   }
 
@@ -420,6 +426,16 @@
     };
   }
 
+  function adjustEndTimeAfterInvalidRange() {
+    const start = timeToMinutes(elements.start.value);
+    const end = timeToMinutes(elements.end.value);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start < end) return;
+
+    const adjustedEnd = minutesToTime(Math.min(start + 60, END_HOUR * 60));
+    ensureTimeOption(elements.end, adjustedEnd);
+    elements.end.value = adjustedEnd;
+  }
+
   function validateCandidate(candidate) {
     if (!candidate.title) return "請輸入行程標題。";
     const start = timeToMinutes(candidate.start);
@@ -449,6 +465,7 @@
 
   function handleSubmit(event) {
     event.preventDefault();
+    adjustEndTimeAfterInvalidRange();
     const candidate = getFormCandidate();
     const error = validateCandidate(candidate);
     if (error) {
@@ -681,8 +698,12 @@
   elements.closeInfoButton.addEventListener("click", closeInfoDialog);
   elements.confirmInfoButton.addEventListener("click", closeInfoDialog);
   elements.form.addEventListener("submit", handleSubmit);
-  elements.start.addEventListener("change", updateConflictWarning);
-  elements.end.addEventListener("change", updateConflictWarning);
+  [elements.start, elements.end].forEach((element) => {
+    element.addEventListener("change", () => {
+      adjustEndTimeAfterInvalidRange();
+      updateConflictWarning();
+    });
+  });
   elements.dialog.addEventListener("click", (event) => {
     if (event.target === elements.dialog) closeDialog();
   });

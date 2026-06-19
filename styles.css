@@ -260,6 +260,7 @@ textarea:focus-visible {
 
 .schedule-card {
   overflow: hidden;
+  padding-bottom: 30px;
   border: 1px solid rgba(24, 34, 29, 0.08);
   border-radius: var(--radius);
   background: var(--paper);
@@ -313,6 +314,10 @@ textarea:focus-visible {
 
 .hour-row:first-child {
   border-top: 0;
+}
+
+.end-hour-row {
+  height: 0;
 }
 
 .hour-label {
