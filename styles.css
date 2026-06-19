@@ -105,7 +105,7 @@ button {
   position: fixed;
   right: max(24px, env(safe-area-inset-right));
   bottom: max(24px, env(safe-area-inset-bottom));
-  z-index: 20;
+  z-index: 8;
 }
 
 .eyebrow {
@@ -865,7 +865,7 @@ textarea:hover {
     height: 34px;
   }
 
-  .app-header .primary-button {
+  #add-event-button {
     flex: 0 0 46px;
     width: 46px;
     height: 46px;
@@ -880,19 +880,19 @@ textarea:hover {
     bottom: max(40px, env(safe-area-inset-bottom));
   }
 
-  .app-header .primary-button .button-label {
+  #add-event-button .button-label {
     display: none;
   }
 
-  .app-header .primary-button .add-icon {
+  #add-event-button .add-icon {
     display: block;
     flex-basis: 16px;
     width: 16px;
     height: 16px;
   }
 
-  .app-header .primary-button .add-icon::before,
-  .app-header .primary-button .add-icon::after {
+  #add-event-button .add-icon::before,
+  #add-event-button .add-icon::after {
     width: 16px;
   }
 
