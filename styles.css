@@ -70,7 +70,7 @@ button {
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 28px;
-  z-index: 11;
+  z-index: 8;
 }
 
 .app-brand {
@@ -528,6 +528,8 @@ body.is-dragging-event {
   inset: 0;
   background: rgba(20, 28, 24, 0.48);
   backdrop-filter: blur(3px);
+  overscroll-behavior: none;
+  touch-action: none;
   z-index: 9;
 }
 
@@ -574,6 +576,7 @@ body.is-dragging-event {
   max-height: calc(100vh - 28px);
   padding: 0;
   overflow: auto;
+  overscroll-behavior: contain;
   border: 0;
   border-radius: 18px;
   color: var(--ink);
@@ -584,6 +587,8 @@ body.is-dragging-event {
 .event-dialog::backdrop {
   background: rgba(20, 28, 24, 0.52);
   backdrop-filter: blur(3px);
+  overscroll-behavior: none;
+  touch-action: none;
 }
 
 .dialog-header,

@@ -300,6 +300,28 @@
     elements.addButton.inert = emptyModalOpen;
   }
 
+  function preventModalBackgroundScroll(event) {
+    if (!pageScrollLocked) return;
+
+    const openDialog = elements.dialog.open
+      ? elements.dialog
+      : elements.infoDialog.open
+        ? elements.infoDialog
+        : null;
+    if (!openDialog) {
+      event.preventDefault();
+      return;
+    }
+
+    const point = event.touches?.[0] || event;
+    const rect = openDialog.getBoundingClientRect();
+    const insideDialog = point.clientX >= rect.left
+      && point.clientX <= rect.right
+      && point.clientY >= rect.top
+      && point.clientY <= rect.bottom;
+    if (!insideDialog) event.preventDefault();
+  }
+
   function getDefaultTimes() {
     const now = new Date();
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -650,6 +672,8 @@
       event.stopPropagation();
     });
   });
+  document.addEventListener("wheel", preventModalBackgroundScroll, { capture: true, passive: false });
+  document.addEventListener("touchmove", preventModalBackgroundScroll, { capture: true, passive: false });
   elements.timeline.addEventListener("dblclick", openCreateDialogAtPosition);
   elements.closeButton.addEventListener("click", closeDialog);
   elements.cancelButton.addEventListener("click", closeDialog);
