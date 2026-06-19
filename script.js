@@ -6,6 +6,8 @@
   const END_HOUR = 24;
   const MINUTES_PER_DAY_VIEW = (END_HOUR - START_HOUR) * 60;
   const TIME_STEP = 30;
+  const LONG_PRESS_DELAY = 450;
+  const MOVE_TOLERANCE = 8;
   const VALID_COLORS = new Set(["green", "red", "blue"]);
 
   const elements = {
@@ -18,6 +20,8 @@
     emptyState: document.querySelector("#empty-state"),
     currentTimeLine: document.querySelector("#current-time-line"),
     currentTimeLabel: document.querySelector("#current-time-label"),
+    dragTimeIndicator: document.querySelector("#drag-time-indicator"),
+    dragTimeValue: document.querySelector("#drag-time-value"),
     storageNotice: document.querySelector("#storage-notice"),
     dialog: document.querySelector("#event-dialog"),
     form: document.querySelector("#event-form"),
@@ -38,6 +42,8 @@
   let store = loadStore();
   let activeDate = getLocalDateKey();
   let editingId = null;
+  let dragState = null;
+  let suppressClickUntil = 0;
 
   function getLocalDateKey(date = new Date()) {
     const year = date.getFullYear();
@@ -232,7 +238,6 @@
         <span class="event-time">${event.start}–${event.end}${hasConflict ? " · 時段重疊" : ""}</span>
       </button>
       <div class="event-actions">
-        <button class="event-action edit" type="button" aria-label="編輯 ${escapeHtml(event.title)}" title="編輯">✎</button>
         <button class="event-action delete" type="button" aria-label="刪除 ${escapeHtml(event.title)}" title="刪除">×</button>
       </div>`;
     card.querySelector(".event-title").textContent = event.title;
@@ -405,6 +410,154 @@
     render();
   }
 
+  function clearLongPressTimer() {
+    if (!dragState?.holdTimer) return;
+    window.clearTimeout(dragState.holdTimer);
+    dragState.holdTimer = null;
+  }
+
+  function beginLongPressDrag(pointerEvent, card, mainButton) {
+    const event = getEvents().find((item) => item.id === card.dataset.eventId);
+    if (!event) return;
+
+    const cardRect = card.getBoundingClientRect();
+    const timelineRect = elements.timeline.getBoundingClientRect();
+    const duration = timeToMinutes(event.end) - timeToMinutes(event.start);
+    const grabOffset = ((pointerEvent.clientY - cardRect.top) / timelineRect.height) * MINUTES_PER_DAY_VIEW;
+
+    dragState = {
+      pointerId: pointerEvent.pointerId,
+      card,
+      mainButton,
+      eventId: event.id,
+      originalStart: timeToMinutes(event.start),
+      previewStart: timeToMinutes(event.start),
+      duration,
+      grabOffset: Math.max(0, Math.min(grabOffset, duration)),
+      startX: pointerEvent.clientX,
+      startY: pointerEvent.clientY,
+      lastX: pointerEvent.clientX,
+      lastY: pointerEvent.clientY,
+      active: false,
+      movedBeforeActivation: false,
+      holdTimer: null,
+      autoScrollFrame: null,
+    };
+
+    mainButton.setPointerCapture(pointerEvent.pointerId);
+    dragState.holdTimer = window.setTimeout(activateDrag, LONG_PRESS_DELAY);
+  }
+
+  function activateDrag() {
+    if (!dragState) return;
+    dragState.active = true;
+    dragState.holdTimer = null;
+    dragState.card.classList.add("is-dragging");
+    document.body.classList.add("is-dragging-event");
+    elements.dragTimeIndicator.hidden = false;
+    updateDragPreview(dragState.lastX, dragState.lastY, false);
+    dragState.autoScrollFrame = window.requestAnimationFrame(autoScrollDrag);
+    if (navigator.vibrate) navigator.vibrate(30);
+  }
+
+  function updateDragPreview(clientX, clientY, snapToPointer = true) {
+    if (!dragState?.active) return;
+    const timelineRect = elements.timeline.getBoundingClientRect();
+
+    if (snapToPointer) {
+      const pointerMinutes = ((clientY - timelineRect.top) / timelineRect.height) * MINUTES_PER_DAY_VIEW;
+      const rawStart = START_HOUR * 60 + pointerMinutes - dragState.grabOffset;
+      const snappedStart = Math.round(rawStart / TIME_STEP) * TIME_STEP;
+      const latestStart = END_HOUR * 60 - dragState.duration;
+      dragState.previewStart = Math.max(START_HOUR * 60, Math.min(snappedStart, latestStart));
+    }
+
+    const offsetHours = (dragState.previewStart - START_HOUR * 60) / 60;
+    dragState.card.style.setProperty("--event-top", `calc(var(--hour-height) * ${offsetHours})`);
+
+    const previewEnd = dragState.previewStart + dragState.duration;
+    elements.dragTimeValue.textContent = `${minutesToTime(dragState.previewStart)}–${minutesToTime(previewEnd)}`;
+    elements.dragTimeIndicator.style.setProperty("--drag-tip-left", `${Math.max(78, Math.min(clientX, window.innerWidth - 78))}px`);
+    elements.dragTimeIndicator.style.setProperty("--drag-tip-top", `${Math.max(92, clientY - 10)}px`);
+  }
+
+  function autoScrollDrag() {
+    if (!dragState?.active) return;
+    const edge = 86;
+    let speed = 0;
+    if (dragState.lastY < edge) speed = -Math.ceil((edge - dragState.lastY) / 7);
+    if (dragState.lastY > window.innerHeight - edge) {
+      speed = Math.ceil((dragState.lastY - (window.innerHeight - edge)) / 7);
+    }
+    if (speed) {
+      window.scrollBy(0, speed);
+      updateDragPreview(dragState.lastX, dragState.lastY);
+    }
+    dragState.autoScrollFrame = window.requestAnimationFrame(autoScrollDrag);
+  }
+
+  function handleDragPointerDown(pointerEvent) {
+    if (pointerEvent.button !== 0) return;
+    const mainButton = pointerEvent.target.closest(".event-card-main");
+    const card = mainButton?.closest(".event-card");
+    if (!mainButton || !card) return;
+    beginLongPressDrag(pointerEvent, card, mainButton);
+  }
+
+  function handleDragPointerMove(pointerEvent) {
+    if (!dragState || pointerEvent.pointerId !== dragState.pointerId) return;
+    dragState.lastX = pointerEvent.clientX;
+    dragState.lastY = pointerEvent.clientY;
+    const distance = Math.hypot(pointerEvent.clientX - dragState.startX, pointerEvent.clientY - dragState.startY);
+
+    if (!dragState.active) {
+      if (distance > MOVE_TOLERANCE) {
+        dragState.movedBeforeActivation = true;
+        clearLongPressTimer();
+      }
+      return;
+    }
+
+    pointerEvent.preventDefault();
+    updateDragPreview(pointerEvent.clientX, pointerEvent.clientY);
+  }
+
+  function finishDrag(pointerEvent, cancelled = false) {
+    if (!dragState || pointerEvent.pointerId !== dragState.pointerId) return;
+    clearLongPressTimer();
+    const finishedState = dragState;
+
+    if (finishedState.autoScrollFrame) window.cancelAnimationFrame(finishedState.autoScrollFrame);
+    if (finishedState.mainButton.hasPointerCapture(pointerEvent.pointerId)) {
+      finishedState.mainButton.releasePointerCapture(pointerEvent.pointerId);
+    }
+
+    if (finishedState.active) {
+      suppressClickUntil = Date.now() + 700;
+      if (!cancelled && finishedState.previewStart !== finishedState.originalStart) {
+        const events = [...getEvents()];
+        const index = events.findIndex((item) => item.id === finishedState.eventId);
+        if (index !== -1) {
+          events[index] = {
+            ...events[index],
+            start: minutesToTime(finishedState.previewStart),
+            end: minutesToTime(finishedState.previewStart + finishedState.duration),
+            updatedAt: new Date().toISOString(),
+          };
+          setEvents(events);
+        }
+      }
+    } else if (finishedState.movedBeforeActivation) {
+      suppressClickUntil = Date.now() + 700;
+    }
+
+    finishedState.card.classList.remove("is-dragging");
+    document.body.classList.remove("is-dragging-event");
+    elements.dragTimeIndicator.hidden = true;
+    dragState = null;
+    if (finishedState.active) render();
+  }
+
   function updateCurrentTime() {
     const now = new Date();
     const minutes = now.getHours() * 60 + now.getMinutes();
@@ -442,7 +595,12 @@
     if (event.target === elements.dialog) closeDialog();
   });
   elements.dialog.addEventListener("close", render);
+  elements.eventsLayer.addEventListener("pointerdown", handleDragPointerDown);
+  elements.eventsLayer.addEventListener("pointermove", handleDragPointerMove);
+  elements.eventsLayer.addEventListener("pointerup", (event) => finishDrag(event));
+  elements.eventsLayer.addEventListener("pointercancel", (event) => finishDrag(event, true));
   elements.eventsLayer.addEventListener("click", (event) => {
+    if (Date.now() < suppressClickUntil) return;
     const card = event.target.closest(".event-card");
     if (!card) return;
     if (event.target.closest(".delete")) deleteEvent(card.dataset.eventId);
@@ -457,4 +615,12 @@
   buildTimelineGrid();
   render();
   window.setInterval(refreshDateIfNeeded, 60_000);
+
+  if ("serviceWorker" in navigator && window.location.protocol !== "file:") {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js").catch((error) => {
+        console.warn("Service worker registration failed", error);
+      });
+    });
+  }
 })();
