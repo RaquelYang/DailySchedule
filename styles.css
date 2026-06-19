@@ -683,8 +683,12 @@ textarea:hover {
     height: 46px;
     min-height: 46px;
     padding: 0;
-    font-size: 0;
+    gap: 0;
     line-height: 1;
+  }
+
+  .app-header .primary-button .button-label {
+    display: none;
   }
 
   .app-header .primary-button .add-icon {
