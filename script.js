@@ -442,6 +442,12 @@
     editingId = null;
   }
 
+  function handleEventDialogClose() {
+    editingId = null;
+    syncModalState();
+    render();
+  }
+
   function openInfoDialog() {
     elements.infoDialog.showModal();
     syncModalState();
@@ -754,7 +760,7 @@
   elements.dialog.addEventListener("click", (event) => {
     if (event.target === elements.dialog) closeDialog();
   });
-  elements.dialog.addEventListener("close", render);
+  elements.dialog.addEventListener("close", handleEventDialogClose);
   elements.infoDialog.addEventListener("click", (event) => {
     if (event.target === elements.infoDialog) closeInfoDialog();
   });
