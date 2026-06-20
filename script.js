@@ -15,6 +15,7 @@
     appTitle: document.querySelector("#app-title"),
     todayLabel: document.querySelector("#today-label"),
     dateToggleButton: document.querySelector("#date-toggle-button"),
+    scheduleCard: document.querySelector(".schedule-card"),
     eventCount: document.querySelector("#event-count"),
     timeline: document.querySelector("#timeline"),
     timelineGrid: document.querySelector("#timeline-grid"),
@@ -221,10 +222,12 @@
   }
 
   function refreshDateHeader() {
+    const isTomorrow = getViewRelation() === "tomorrow";
     elements.todayLabel.textContent = getViewLabel();
     elements.dateToggleButton.textContent = getDateToggleLabel();
     elements.dateToggleButton.setAttribute("aria-label", `切換到${getDateToggleLabel()}`);
     elements.dateToggleButton.title = `切換到${getDateToggleLabel()}`;
+    elements.scheduleCard.classList.toggle("is-tomorrow", isTomorrow);
   }
 
   function eventsOverlap(first, second) {

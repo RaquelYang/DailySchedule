@@ -295,6 +295,14 @@ textarea:focus-visible {
   box-shadow: 0 20px 45px rgba(53, 58, 48, 0.09);
 }
 
+.schedule-card.is-tomorrow {
+  background: #f3f4f2;
+}
+
+.schedule-card.is-tomorrow .hour-label {
+  background: #f3f4f2;
+}
+
 .schedule-heading-row {
   display: flex;
   align-items: center;
