@@ -12,13 +12,13 @@
 
   const elements = {
     appShell: document.querySelector(".app-shell"),
+    appTitle: document.querySelector("#app-title"),
     todayLabel: document.querySelector("#today-label"),
+    dateToggleButton: document.querySelector("#date-toggle-button"),
     eventCount: document.querySelector("#event-count"),
     timeline: document.querySelector("#timeline"),
     timelineGrid: document.querySelector("#timeline-grid"),
     eventsLayer: document.querySelector("#events-layer"),
-    emptyBackdrop: document.querySelector("#empty-backdrop"),
-    emptyState: document.querySelector("#empty-state"),
     currentTimeLine: document.querySelector("#current-time-line"),
     currentTimeLabel: document.querySelector("#current-time-label"),
     dragTimeIndicator: document.querySelector("#drag-time-indicator"),
@@ -34,7 +34,6 @@
     formError: document.querySelector("#form-error"),
     conflictWarning: document.querySelector("#conflict-warning"),
     addButton: document.querySelector("#add-event-button"),
-    emptyAddButton: document.querySelector("#empty-add-button"),
     closeButton: document.querySelector("#close-dialog-button"),
     cancelButton: document.querySelector("#cancel-button"),
     infoButton: document.querySelector("#info-button"),
@@ -45,7 +44,8 @@
 
   let storageAvailable = true;
   let store = loadStore();
-  let activeDate = getLocalDateKey();
+  let currentDateKey = getLocalDateKey();
+  let viewDateKey = currentDateKey;
   let editingId = null;
   let dragState = null;
   let suppressClickUntil = 0;
@@ -57,6 +57,17 @@
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
+  }
+
+  function parseDateKey(dateKey) {
+    const [year, month, day] = dateKey.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  function shiftDateKey(dateKey, days) {
+    const date = parseDateKey(dateKey);
+    date.setDate(date.getDate() + days);
+    return getLocalDateKey(date);
   }
 
   function createEmptyStore() {
@@ -98,12 +109,12 @@
   }
 
   function getEvents() {
-    const events = store.days[activeDate];
+    const events = store.days[viewDateKey];
     return Array.isArray(events) ? events : [];
   }
 
   function setEvents(events) {
-    store.days[activeDate] = events;
+    store.days[viewDateKey] = events;
     saveStore();
   }
 
@@ -167,13 +178,53 @@
     elements.timelineGrid.append(fragment);
   }
 
-  function formatToday(date = new Date()) {
-    return new Intl.DateTimeFormat("zh-TW", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "long",
-    }).format(date);
+  const dateFormatter = new Intl.DateTimeFormat("zh-TW", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    weekday: "long",
+  });
+
+  function formatDateKey(dateKey) {
+    return dateFormatter.format(parseDateKey(dateKey));
+  }
+
+  function getViewRelation() {
+    if (viewDateKey === currentDateKey) return "today";
+    if (viewDateKey === shiftDateKey(currentDateKey, 1)) return "tomorrow";
+    if (viewDateKey === shiftDateKey(currentDateKey, -1)) return "yesterday";
+    return "other";
+  }
+
+  function getViewTitle() {
+    const relation = getViewRelation();
+    if (relation === "today") return "今日行程";
+    if (relation === "tomorrow") return "明日行程";
+    if (relation === "yesterday") return "昨日行程";
+    return `${formatDateKey(viewDateKey)} 行程`;
+  }
+
+  function getViewLabel() {
+    const relation = getViewRelation();
+    const label = relation === "today"
+      ? "今天"
+      : relation === "tomorrow"
+        ? "明天"
+        : relation === "yesterday"
+          ? "昨天"
+          : "";
+    return label ? `${label}・${formatDateKey(viewDateKey)}` : formatDateKey(viewDateKey);
+  }
+
+  function getDateToggleLabel() {
+    return viewDateKey === currentDateKey ? "明天" : "今天";
+  }
+
+  function refreshDateHeader() {
+    elements.todayLabel.textContent = getViewLabel();
+    elements.dateToggleButton.textContent = getDateToggleLabel();
+    elements.dateToggleButton.setAttribute("aria-label", `切換到${getDateToggleLabel()}`);
+    elements.dateToggleButton.title = `切換到${getDateToggleLabel()}`;
   }
 
   function eventsOverlap(first, second) {
@@ -277,18 +328,16 @@
     });
 
     elements.eventsLayer.replaceChildren(fragment);
-    const hasEvents = events.length !== 0;
-    elements.emptyBackdrop.hidden = hasEvents;
-    elements.emptyState.hidden = hasEvents;
     elements.eventCount.textContent = events.length ? `${events.length} 筆行程` : "尚無行程";
-    elements.todayLabel.textContent = formatToday();
+    refreshDateHeader();
+    elements.appTitle.textContent = getViewTitle();
+    document.title = getViewTitle();
+    elements.appShell.setAttribute("data-view-date", viewDateKey);
     updateCurrentTime();
-    syncModalState();
   }
 
   function syncModalState() {
-    const emptyModalOpen = !elements.emptyState.hidden;
-    const modalOpen = emptyModalOpen || elements.dialog.open || elements.infoDialog.open;
+    const modalOpen = elements.dialog.open || elements.infoDialog.open;
     if (modalOpen && !pageScrollLocked) {
       lockedScrollY = window.scrollY;
       document.body.style.setProperty("--locked-scroll-offset", `-${lockedScrollY}px`);
@@ -302,8 +351,6 @@
       window.scrollTo(0, lockedScrollY);
       pageScrollLocked = false;
     }
-    elements.appShell.inert = emptyModalOpen;
-    elements.addButton.inert = emptyModalOpen;
   }
 
   function preventModalBackgroundScroll(event) {
@@ -346,15 +393,13 @@
     elements.end.value = defaults.end;
     elements.dialogTitle.textContent = "新增行程";
     clearFormMessages();
-    elements.emptyBackdrop.hidden = true;
-    elements.emptyState.hidden = true;
     elements.dialog.showModal();
     syncModalState();
     requestAnimationFrame(() => elements.title.focus());
   }
 
   function openCreateDialogAtPosition(pointerEvent) {
-    if (pointerEvent.target.closest(".event-card, button, .empty-state, .empty-backdrop")) return;
+    if (pointerEvent.target.closest(".event-card, button")) return;
 
     const timelineRect = elements.timeline.getBoundingClientRect();
     const relativeY = Math.max(0, Math.min(pointerEvent.clientY - timelineRect.top, timelineRect.height));
@@ -658,7 +703,8 @@
   function updateCurrentTime() {
     const now = new Date();
     const minutes = now.getHours() * 60 + now.getMinutes();
-    const inRange = getEvents().length > 0
+    const inRange = viewDateKey === currentDateKey
+      && getEvents().length > 0
       && minutes >= START_HOUR * 60
       && minutes < END_HOUR * 60;
     elements.currentTimeLine.hidden = !inRange;
@@ -671,23 +717,24 @@
 
   function refreshDateIfNeeded() {
     const nextDate = getLocalDateKey();
-    if (nextDate !== activeDate) {
-      activeDate = nextDate;
-      if (elements.dialog.open) closeDialog();
+    if (nextDate !== currentDateKey) {
+      currentDateKey = nextDate;
       render();
       return;
     }
-    elements.todayLabel.textContent = formatToday();
+    refreshDateHeader();
+    elements.appTitle.textContent = getViewTitle();
+    document.title = getViewTitle();
     updateCurrentTime();
   }
 
   elements.addButton.addEventListener("click", () => openCreateDialog());
-  elements.emptyAddButton.addEventListener("click", () => openCreateDialog());
-  ["pointerdown", "click", "dblclick"].forEach((eventName) => {
-    elements.emptyBackdrop.addEventListener(eventName, (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-    });
+  elements.dateToggleButton.addEventListener("click", () => {
+    viewDateKey = viewDateKey === currentDateKey
+      ? shiftDateKey(currentDateKey, 1)
+      : currentDateKey;
+    if (elements.dialog.open) closeDialog();
+    render();
   });
   document.addEventListener("wheel", preventModalBackgroundScroll, { capture: true, passive: false });
   document.addEventListener("touchmove", preventModalBackgroundScroll, { capture: true, passive: false });

@@ -12,16 +12,16 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="icons/app-icon.svg?v=4" />
     <link rel="apple-touch-icon" href="icons/icon-180.png?v=3" />
-    <link rel="stylesheet" href="styles.css?v=11" />
+    <link rel="stylesheet" href="styles.css?v=15" />
   </head>
   <body>
     <main class="app-shell">
       <header class="app-header">
         <div class="app-brand">
-          <div>
+          <div class="app-brand-copy">
             <p class="eyebrow">DAILY SCHEDULE</p>
-            <div class="title-row">
-              <h1>今日行程</h1>
+            <div class="app-title-row">
+              <h1 id="app-title">今日行程</h1>
               <button id="info-button" class="info-button" type="button" aria-label="開啟使用說明" title="使用說明">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <circle cx="12" cy="12" r="9"></circle>
@@ -31,6 +31,9 @@
             </div>
             <p id="today-label" class="today-label"></p>
           </div>
+        </div>
+        <div class="header-actions">
+          <button id="date-toggle-button" class="primary-button date-toggle-button" type="button">明天</button>
         </div>
       </header>
 
@@ -54,14 +57,6 @@
         </div>
       </section>
     </main>
-
-    <div id="empty-backdrop" class="empty-backdrop" aria-hidden="true" hidden></div>
-    <div id="empty-state" class="empty-state" role="dialog" aria-modal="true" aria-labelledby="empty-state-title" hidden>
-      <div class="empty-icon" aria-hidden="true">☀</div>
-      <h3 id="empty-state-title">今天還沒有行程</h3>
-      <p>安排第一個時段，讓今天更有節奏。</p>
-      <button id="empty-add-button" class="secondary-button" type="button">新增第一筆行程</button>
-    </div>
 
     <button id="add-event-button" class="primary-button" type="button">
       <span class="add-icon" aria-hidden="true"></span>
@@ -139,13 +134,17 @@
       <div class="dialog-header">
         <div>
           <p class="eyebrow">HOW TO USE</p>
-          <h2 id="info-dialog-title">如何使用今日行程</h2>
+          <h2 id="info-dialog-title">如何使用行程</h2>
         </div>
         <button id="close-info-dialog-button" class="icon-button" type="button" aria-label="關閉使用說明">×</button>
       </div>
 
       <div class="info-body">
         <ol class="usage-list">
+          <li>
+            <strong>切換日期</strong>
+            <span>點擊右上角的「明天」或「今天」按鈕，在今天與明天之間切換檢視。</span>
+          </li>
           <li>
             <strong>新增行程</strong>
             <span>點擊右下角的「＋」，填寫標題、時間、顏色與備註後儲存。</span>
@@ -172,6 +171,6 @@
       </div>
     </dialog>
 
-    <script src="script.js?v=9"></script>
+    <script src="script.js?v=11"></script>
   </body>
 </html>

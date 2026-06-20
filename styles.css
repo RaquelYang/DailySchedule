@@ -66,7 +66,7 @@ button {
 .app-header {
   position: relative;
   display: flex;
-  align-items: end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 24px;
   margin-bottom: 28px;
@@ -75,21 +75,39 @@ button {
 
 .app-brand {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   min-width: 0;
 }
 
-.title-row {
+.app-brand-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.app-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+}
+
+.app-title-row h1 {
+  margin-bottom: 0;
+}
+
+.date-toggle-button {
+  min-width: 120px;
+  padding: 0 22px;
+  box-shadow: 0 8px 18px rgba(35, 108, 80, 0.16);
 }
 
 .info-button {
   display: grid;
-  flex: 0 0 38px;
-  width: 38px;
-  height: 38px;
+  flex: 0 0 34px;
+  width: 34px;
+  height: 34px;
   padding: 0;
   place-items: center;
   border: 0;
@@ -99,6 +117,15 @@ button {
   transition: color 150ms ease, transform 150ms ease;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-left: auto;
+  padding-top: 14px;
+}
+
 .info-button:hover {
   color: var(--accent);
   background: transparent;
@@ -106,8 +133,8 @@ button {
 }
 
 .info-button svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -150,6 +177,7 @@ h1 {
   margin-bottom: 0;
   color: var(--muted);
   font-size: 1rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .primary-button,
@@ -528,54 +556,6 @@ body.is-dragging-event {
   text-align: right;
 }
 
-.empty-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 28, 24, 0.48);
-  backdrop-filter: blur(3px);
-  overscroll-behavior: none;
-  touch-action: none;
-  z-index: 9;
-}
-
-.empty-state {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  width: min(360px, calc(100% - 40px));
-  padding: 32px 28px;
-  border: 1px solid #d7dcd7;
-  border-radius: 20px;
-  background: #f1f3ef;
-  box-shadow: 0 24px 64px rgba(24, 34, 29, 0.2);
-  text-align: center;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-}
-
-.empty-icon {
-  display: grid;
-  width: 46px;
-  height: 46px;
-  margin: 0 auto 12px;
-  place-items: center;
-  border-radius: 50%;
-  color: #98651f;
-  background: #fae7bd;
-  font-size: 1.3rem;
-}
-
-.empty-state h3 {
-  margin-bottom: 5px;
-  font-size: 1rem;
-}
-
-.empty-state p {
-  margin-bottom: 16px;
-  color: var(--muted);
-  font-size: 0.86rem;
-}
-
 .event-dialog {
   width: min(560px, calc(100% - 28px));
   max-height: calc(100vh - 28px);
@@ -872,21 +852,34 @@ textarea:hover {
   }
 
   .app-header {
-    align-items: center;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
   }
 
   .app-brand {
     align-items: flex-start;
   }
 
-  .title-row {
-    gap: 7px;
+  .app-title-row {
+    gap: 8px;
+  }
+
+  .header-actions {
+    width: 100%;
+    padding-top: 0;
+    justify-content: flex-end;
+  }
+
+  .date-toggle-button {
+    min-width: 96px;
+    padding: 0 18px;
   }
 
   .info-button {
-    flex-basis: 34px;
-    width: 34px;
-    height: 34px;
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
   }
 
   #add-event-button {
@@ -947,11 +940,6 @@ textarea:hover {
 
   .time-separator {
     display: none;
-  }
-
-  .empty-state {
-    width: min(340px, calc(100% - 32px));
-    padding: 28px 22px;
   }
 
   .dialog-header,
