@@ -427,13 +427,13 @@ textarea:focus-visible {
 .event-card-main {
   width: 100%;
   height: 100%;
-  padding: 8px 40px 8px 10px;
+  padding: 8px 70px 8px 10px;
   border: 0;
   color: inherit;
   background: transparent;
-  cursor: grab;
+  cursor: pointer;
   text-align: left;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .event-card.is-dragging {
@@ -443,7 +443,7 @@ textarea:focus-visible {
   z-index: 8;
 }
 
-.event-card.is-dragging .event-card-main {
+.event-card.is-dragging .drag-handle {
   cursor: grabbing;
 }
 
@@ -495,6 +495,17 @@ body.is-dragging-event {
 
 .event-action.delete:hover {
   color: var(--danger);
+}
+
+.event-action.drag-handle {
+  cursor: grab;
+  font-size: 1rem;
+  font-weight: 800;
+  touch-action: none;
+}
+
+.event-action.drag-handle:hover {
+  background: white;
 }
 
 .drag-time-indicator {

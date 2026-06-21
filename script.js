@@ -305,6 +305,7 @@
         <span class="event-time">${event.start}–${event.end}${hasConflict ? " · 時段重疊" : ""}</span>
       </button>
       <div class="event-actions">
+        <button class="event-action drag-handle" type="button" aria-label="拖曳 ${escapeHtml(event.title)} 調整時間" title="長按拖曳調整時間">↕</button>
         <button class="event-action delete" type="button" aria-label="刪除 ${escapeHtml(event.title)}" title="刪除">×</button>
       </div>`;
     card.querySelector(".event-title").textContent = event.title;
@@ -567,7 +568,7 @@
     dragState.holdTimer = null;
   }
 
-  function beginLongPressDrag(pointerEvent, card, mainButton) {
+  function beginLongPressDrag(pointerEvent, card, dragHandle) {
     const event = getEvents().find((item) => item.id === card.dataset.eventId);
     if (!event) return;
 
@@ -579,7 +580,7 @@
     dragState = {
       pointerId: pointerEvent.pointerId,
       card,
-      mainButton,
+      dragHandle,
       eventId: event.id,
       originalStart: timeToMinutes(event.start),
       previewStart: timeToMinutes(event.start),
@@ -595,7 +596,7 @@
       autoScrollFrame: null,
     };
 
-    mainButton.setPointerCapture(pointerEvent.pointerId);
+    dragHandle.setPointerCapture(pointerEvent.pointerId);
     dragState.holdTimer = window.setTimeout(activateDrag, LONG_PRESS_DELAY);
   }
 
@@ -649,10 +650,10 @@
 
   function handleDragPointerDown(pointerEvent) {
     if (pointerEvent.button !== 0) return;
-    const mainButton = pointerEvent.target.closest(".event-card-main");
-    const card = mainButton?.closest(".event-card");
-    if (!mainButton || !card) return;
-    beginLongPressDrag(pointerEvent, card, mainButton);
+    const dragHandle = pointerEvent.target.closest(".drag-handle");
+    const card = dragHandle?.closest(".event-card");
+    if (!dragHandle || !card) return;
+    beginLongPressDrag(pointerEvent, card, dragHandle);
   }
 
   function handleDragPointerMove(pointerEvent) {
@@ -679,8 +680,8 @@
     const finishedState = dragState;
 
     if (finishedState.autoScrollFrame) window.cancelAnimationFrame(finishedState.autoScrollFrame);
-    if (finishedState.mainButton.hasPointerCapture(pointerEvent.pointerId)) {
-      finishedState.mainButton.releasePointerCapture(pointerEvent.pointerId);
+    if (finishedState.dragHandle.hasPointerCapture(pointerEvent.pointerId)) {
+      finishedState.dragHandle.releasePointerCapture(pointerEvent.pointerId);
     }
 
     if (finishedState.active) {
@@ -777,6 +778,7 @@
     const card = event.target.closest(".event-card");
     if (!card) return;
     if (event.target.closest(".delete")) deleteEvent(card.dataset.eventId);
+    else if (event.target.closest(".drag-handle")) return;
     else openEditDialog(card.dataset.eventId);
   });
   document.addEventListener("visibilitychange", () => {
