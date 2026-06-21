@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="icons/app-icon.svg?v=4" />
     <link rel="apple-touch-icon" href="icons/icon-180.png?v=3" />
-    <link rel="stylesheet" href="styles.css?v=18" />
+    <link rel="stylesheet" href="styles.css?v=19" />
   </head>
   <body>
     <main class="app-shell">
@@ -51,6 +51,7 @@
         <div id="timeline" class="timeline" aria-label="今日時間軸">
           <div id="timeline-grid" class="timeline-grid" aria-hidden="true"></div>
           <div id="events-layer" class="events-layer"></div>
+          <div id="drag-target-line" class="drag-target-line" aria-hidden="true" hidden></div>
           <div id="current-time-line" class="current-time-line" hidden>
             <span id="current-time-label"></span>
           </div>
@@ -171,6 +172,6 @@
       </div>
     </dialog>
 
-    <script src="script.js?v=15"></script>
+    <script src="script.js?v=16"></script>
   </body>
 </html>

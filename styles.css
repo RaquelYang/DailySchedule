@@ -434,6 +434,7 @@ textarea:focus-visible {
   cursor: grab;
   text-align: left;
   touch-action: pan-y;
+  -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
@@ -453,6 +454,20 @@ textarea:focus-visible {
 body.is-dragging-event {
   cursor: grabbing;
   user-select: none;
+}
+
+.drag-target-line {
+  position: absolute;
+  top: var(--drag-target-top);
+  right: 18px;
+  left: var(--label-width);
+  border-top: 2px dashed rgba(35, 108, 80, 0.72);
+  z-index: 9;
+  pointer-events: none;
+}
+
+.drag-target-line[hidden] {
+  display: none;
 }
 
 .event-title {
