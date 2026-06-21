@@ -305,7 +305,6 @@
         <span class="event-time">${event.start}–${event.end}${hasConflict ? " · 時段重疊" : ""}</span>
       </button>
       <div class="event-actions">
-        <button class="event-action drag-handle" type="button" aria-label="拖曳 ${escapeHtml(event.title)} 調整時間" title="長按拖曳調整時間">↕</button>
         <button class="event-action delete" type="button" aria-label="刪除 ${escapeHtml(event.title)}" title="刪除">×</button>
       </div>`;
     card.querySelector(".event-title").textContent = event.title;
@@ -568,35 +567,36 @@
     dragState.holdTimer = null;
   }
 
-  function beginLongPressDrag(pointerEvent, card, dragHandle) {
+  function beginLongPressDrag({ clientX, clientY, inputId, inputType, captureTarget = null }, card) {
     const event = getEvents().find((item) => item.id === card.dataset.eventId);
     if (!event) return;
 
     const cardRect = card.getBoundingClientRect();
     const timelineRect = elements.timeline.getBoundingClientRect();
     const duration = timeToMinutes(event.end) - timeToMinutes(event.start);
-    const grabOffset = ((pointerEvent.clientY - cardRect.top) / timelineRect.height) * MINUTES_PER_DAY_VIEW;
+    const grabOffset = ((clientY - cardRect.top) / timelineRect.height) * MINUTES_PER_DAY_VIEW;
 
     dragState = {
-      pointerId: pointerEvent.pointerId,
+      inputId,
+      inputType,
       card,
-      dragHandle,
+      captureTarget,
       eventId: event.id,
       originalStart: timeToMinutes(event.start),
       previewStart: timeToMinutes(event.start),
       duration,
       grabOffset: Math.max(0, Math.min(grabOffset, duration)),
-      startX: pointerEvent.clientX,
-      startY: pointerEvent.clientY,
-      lastX: pointerEvent.clientX,
-      lastY: pointerEvent.clientY,
+      startX: clientX,
+      startY: clientY,
+      lastX: clientX,
+      lastY: clientY,
       active: false,
       movedBeforeActivation: false,
       holdTimer: null,
       autoScrollFrame: null,
     };
 
-    dragHandle.setPointerCapture(pointerEvent.pointerId);
+    if (captureTarget) captureTarget.setPointerCapture(inputId);
     dragState.holdTimer = window.setTimeout(activateDrag, LONG_PRESS_DELAY);
   }
 
@@ -648,40 +648,49 @@
     dragState.autoScrollFrame = window.requestAnimationFrame(autoScrollDrag);
   }
 
+  function updatePendingDrag(clientX, clientY) {
+    if (!dragState) return;
+    dragState.lastX = clientX;
+    dragState.lastY = clientY;
+    const distance = Math.hypot(clientX - dragState.startX, clientY - dragState.startY);
+
+    if (!dragState.active && distance > MOVE_TOLERANCE) {
+      dragState.movedBeforeActivation = true;
+      clearLongPressTimer();
+    }
+  }
+
   function handleDragPointerDown(pointerEvent) {
-    if (pointerEvent.button !== 0) return;
-    const dragHandle = pointerEvent.target.closest(".drag-handle");
-    const card = dragHandle?.closest(".event-card");
-    if (!dragHandle || !card) return;
-    beginLongPressDrag(pointerEvent, card, dragHandle);
+    if (pointerEvent.pointerType === "touch" || pointerEvent.button !== 0 || dragState) return;
+    const mainButton = pointerEvent.target.closest(".event-card-main");
+    const card = mainButton?.closest(".event-card");
+    if (!mainButton || !card) return;
+    beginLongPressDrag({
+      clientX: pointerEvent.clientX,
+      clientY: pointerEvent.clientY,
+      inputId: pointerEvent.pointerId,
+      inputType: "pointer",
+      captureTarget: mainButton,
+    }, card);
   }
 
   function handleDragPointerMove(pointerEvent) {
-    if (!dragState || pointerEvent.pointerId !== dragState.pointerId) return;
-    dragState.lastX = pointerEvent.clientX;
-    dragState.lastY = pointerEvent.clientY;
-    const distance = Math.hypot(pointerEvent.clientX - dragState.startX, pointerEvent.clientY - dragState.startY);
-
-    if (!dragState.active) {
-      if (distance > MOVE_TOLERANCE) {
-        dragState.movedBeforeActivation = true;
-        clearLongPressTimer();
-      }
-      return;
-    }
+    if (!dragState || dragState.inputType !== "pointer" || pointerEvent.pointerId !== dragState.inputId) return;
+    updatePendingDrag(pointerEvent.clientX, pointerEvent.clientY);
+    if (!dragState.active) return;
 
     pointerEvent.preventDefault();
     updateDragPreview(pointerEvent.clientX, pointerEvent.clientY);
   }
 
-  function finishDrag(pointerEvent, cancelled = false) {
-    if (!dragState || pointerEvent.pointerId !== dragState.pointerId) return;
+  function finishDrag(cancelled = false) {
+    if (!dragState) return;
     clearLongPressTimer();
     const finishedState = dragState;
 
     if (finishedState.autoScrollFrame) window.cancelAnimationFrame(finishedState.autoScrollFrame);
-    if (finishedState.dragHandle.hasPointerCapture(pointerEvent.pointerId)) {
-      finishedState.dragHandle.releasePointerCapture(pointerEvent.pointerId);
+    if (finishedState.captureTarget?.hasPointerCapture(finishedState.inputId)) {
+      finishedState.captureTarget.releasePointerCapture(finishedState.inputId);
     }
 
     if (finishedState.active) {
@@ -708,6 +717,59 @@
     elements.dragTimeIndicator.hidden = true;
     dragState = null;
     if (finishedState.active) render();
+  }
+
+  function handleDragPointerEnd(pointerEvent, cancelled = false) {
+    if (!dragState || dragState.inputType !== "pointer" || pointerEvent.pointerId !== dragState.inputId) return;
+    finishDrag(cancelled);
+  }
+
+  function findTrackedTouch(touchList) {
+    if (!dragState || dragState.inputType !== "touch") return null;
+    return Array.from(touchList).find((touch) => touch.identifier === dragState.inputId) || null;
+  }
+
+  function handleDragTouchStart(touchEvent) {
+    if (dragState) {
+      if (dragState.inputType === "touch" && touchEvent.touches.length > 1) finishDrag(true);
+      return;
+    }
+    if (touchEvent.touches.length !== 1) return;
+    const mainButton = touchEvent.target.closest(".event-card-main");
+    const card = mainButton?.closest(".event-card");
+    const touch = touchEvent.changedTouches[0];
+    if (!mainButton || !card || !touch) return;
+    beginLongPressDrag({
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      inputId: touch.identifier,
+      inputType: "touch",
+    }, card);
+  }
+
+  function handleDragTouchMove(touchEvent) {
+    if (!dragState || dragState.inputType !== "touch") return;
+    if (touchEvent.touches.length !== 1) {
+      finishDrag(true);
+      return;
+    }
+    const touch = findTrackedTouch(touchEvent.touches);
+    if (!touch) return;
+    updatePendingDrag(touch.clientX, touch.clientY);
+    if (!dragState.active) return;
+
+    if (touchEvent.cancelable) touchEvent.preventDefault();
+    updateDragPreview(touch.clientX, touch.clientY);
+  }
+
+  function handleDragTouchEnd(touchEvent, cancelled = false) {
+    if (!dragState || dragState.inputType !== "touch") return;
+    if (!findTrackedTouch(touchEvent.changedTouches)) return;
+    finishDrag(cancelled);
+  }
+
+  function cancelDrag() {
+    if (dragState) finishDrag(true);
   }
 
   function updateCurrentTime() {
@@ -771,19 +833,27 @@
   elements.infoDialog.addEventListener("close", syncModalState);
   elements.eventsLayer.addEventListener("pointerdown", handleDragPointerDown);
   elements.eventsLayer.addEventListener("pointermove", handleDragPointerMove);
-  elements.eventsLayer.addEventListener("pointerup", (event) => finishDrag(event));
-  elements.eventsLayer.addEventListener("pointercancel", (event) => finishDrag(event, true));
+  elements.eventsLayer.addEventListener("pointerup", (event) => handleDragPointerEnd(event));
+  elements.eventsLayer.addEventListener("pointercancel", (event) => handleDragPointerEnd(event, true));
+  elements.eventsLayer.addEventListener("touchstart", handleDragTouchStart, { passive: true });
+  elements.eventsLayer.addEventListener("touchmove", handleDragTouchMove, { passive: false });
+  elements.eventsLayer.addEventListener("touchend", (event) => handleDragTouchEnd(event));
+  elements.eventsLayer.addEventListener("touchcancel", (event) => handleDragTouchEnd(event, true));
+  elements.eventsLayer.addEventListener("contextmenu", (event) => {
+    if (dragState?.inputType === "touch" && event.target.closest(".event-card-main")) event.preventDefault();
+  });
   elements.eventsLayer.addEventListener("click", (event) => {
     if (Date.now() < suppressClickUntil) return;
     const card = event.target.closest(".event-card");
     if (!card) return;
     if (event.target.closest(".delete")) deleteEvent(card.dataset.eventId);
-    else if (event.target.closest(".drag-handle")) return;
     else openEditDialog(card.dataset.eventId);
   });
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) refreshDateIfNeeded();
+    if (document.hidden) cancelDrag();
+    else refreshDateIfNeeded();
   });
+  window.addEventListener("blur", cancelDrag);
   window.addEventListener("focus", refreshDateIfNeeded);
 
   populateTimeOptions();
