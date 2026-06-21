@@ -456,20 +456,6 @@ body.is-dragging-event {
   user-select: none;
 }
 
-.drag-target-line {
-  position: absolute;
-  top: var(--drag-target-top);
-  right: 18px;
-  left: var(--label-width);
-  border-top: 2px dashed rgba(35, 108, 80, 0.72);
-  z-index: 9;
-  pointer-events: none;
-}
-
-.drag-target-line[hidden] {
-  display: none;
-}
-
 .event-title {
   display: block;
   overflow: hidden;

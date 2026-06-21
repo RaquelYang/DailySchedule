@@ -22,7 +22,6 @@
     eventsLayer: document.querySelector("#events-layer"),
     currentTimeLine: document.querySelector("#current-time-line"),
     currentTimeLabel: document.querySelector("#current-time-label"),
-    dragTargetLine: document.querySelector("#drag-target-line"),
     dragTimeIndicator: document.querySelector("#drag-time-indicator"),
     dragTimeValue: document.querySelector("#drag-time-value"),
     storageNotice: document.querySelector("#storage-notice"),
@@ -607,7 +606,6 @@
     dragState.holdTimer = null;
     dragState.card.classList.add("is-dragging");
     document.body.classList.add("is-dragging-event");
-    elements.dragTargetLine.hidden = false;
     elements.dragTimeIndicator.hidden = false;
     updateDragPreview(dragState.lastX, dragState.lastY, false);
     dragState.autoScrollFrame = window.requestAnimationFrame(autoScrollDrag);
@@ -628,7 +626,6 @@
 
     const offsetHours = (dragState.previewStart - START_HOUR * 60) / 60;
     dragState.card.style.setProperty("--event-top", `calc(var(--hour-height) * ${offsetHours})`);
-    elements.dragTargetLine.style.setProperty("--drag-target-top", `calc(var(--hour-height) * ${offsetHours})`);
 
     const previewEnd = dragState.previewStart + dragState.duration;
     elements.dragTimeValue.textContent = `${minutesToTime(dragState.previewStart)}–${minutesToTime(previewEnd)}`;
@@ -717,7 +714,6 @@
 
     finishedState.card.classList.remove("is-dragging");
     document.body.classList.remove("is-dragging-event");
-    elements.dragTargetLine.hidden = true;
     elements.dragTimeIndicator.hidden = true;
     dragState = null;
     if (finishedState.active) render();
