@@ -1010,11 +1010,17 @@ textarea:hover {
 }
 
 .todo-time-fields {
-  grid-template-columns: minmax(0, 1fr) 124px;
+  grid-template-columns: minmax(0, 1fr) minmax(108px, 124px);
 }
 
 .todo-time-fields .time-separator {
   display: none;
+}
+
+.todo-time-fields input[type="date"],
+.todo-time-fields select {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .time-separator {
@@ -1423,7 +1429,14 @@ textarea:hover {
   }
 
   .todo-time-fields {
-    grid-template-columns: minmax(0, 1fr) 108px;
+    grid-template-columns: minmax(0, 1fr) minmax(94px, 108px);
+    column-gap: 10px;
+  }
+
+  .todo-time-fields input[type="date"],
+  .todo-time-fields select {
+    padding-right: 9px;
+    padding-left: 9px;
   }
 
   .dialog-header,
