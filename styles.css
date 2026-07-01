@@ -959,6 +959,7 @@ button:disabled {
 .field {
   display: grid;
   gap: 7px;
+  min-width: 0;
 }
 
 .field > span {
@@ -976,6 +977,7 @@ input,
 select,
 textarea {
   width: 100%;
+  min-width: 0;
   border: 1px solid #ccd4cd;
   border-radius: 10px;
   color: var(--ink);
@@ -1008,7 +1010,7 @@ textarea:hover {
 }
 
 .todo-time-fields {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) 124px;
 }
 
 .todo-time-fields .time-separator {
@@ -1418,6 +1420,10 @@ textarea:hover {
 
   .time-separator {
     display: none;
+  }
+
+  .todo-time-fields {
+    grid-template-columns: minmax(0, 1fr) 108px;
   }
 
   .dialog-header,
