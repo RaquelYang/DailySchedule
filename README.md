@@ -20,7 +20,7 @@
 |-- script.js              # 資料儲存、日期切換、表單、渲染與拖曳互動
 |-- service-worker.js      # App Shell 快取與離線 fallback
 |-- manifest.webmanifest   # PWA manifest
-`-- icons/                 # PWA icon 與候選圖示
+`-- icons/                 # PWA icon
 ```
 
 ## 本機開發
