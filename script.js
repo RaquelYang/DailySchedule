@@ -9,9 +9,22 @@
   const LONG_PRESS_DELAY = 450;
   const MOVE_TOLERANCE = 8;
   const VALID_COLORS = new Set(["green", "red", "blue"]);
+  const VALID_TODO_PRIORITIES = new Set(["high", "medium", "low"]);
+  const VALID_MOBILE_PANELS = new Set(["schedule", "todo"]);
+  const TODO_PRIORITY_LABELS = {
+    high: "高",
+    medium: "中",
+    low: "低",
+  };
+  const TODO_PRIORITY_RANKS = {
+    high: 0,
+    medium: 1,
+    low: 2,
+  };
 
   const elements = {
     appShell: document.querySelector(".app-shell"),
+    workspaceLayout: document.querySelector("#workspace-layout"),
     appTitle: document.querySelector("#app-title"),
     todayLabel: document.querySelector("#today-label"),
     dateToggleButton: document.querySelector("#date-toggle-button"),
@@ -41,6 +54,25 @@
     infoDialog: document.querySelector("#info-dialog"),
     closeInfoButton: document.querySelector("#close-info-dialog-button"),
     confirmInfoButton: document.querySelector("#confirm-info-dialog-button"),
+    todoDialog: document.querySelector("#todo-dialog"),
+    todoForm: document.querySelector("#todo-form"),
+    todoDialogTitle: document.querySelector("#todo-dialog-title"),
+    todoTitle: document.querySelector("#todo-title"),
+    todoDate: document.querySelector("#todo-date"),
+    todoEndDate: document.querySelector("#todo-end-date"),
+    todoStart: document.querySelector("#todo-start"),
+    todoEnd: document.querySelector("#todo-end"),
+    todoNotes: document.querySelector("#todo-notes"),
+    todoFormError: document.querySelector("#todo-form-error"),
+    addTodoButton: document.querySelector("#add-todo-button"),
+    closeTodoButton: document.querySelector("#close-todo-dialog-button"),
+    todoSubmitButton: document.querySelector("#todo-submit-button"),
+    cancelTodoEditButton: document.querySelector("#cancel-todo-edit-button"),
+    clearCompletedTodosButton: document.querySelector("#clear-completed-todos-button"),
+    todoCount: document.querySelector("#todo-count"),
+    todoEmptyState: document.querySelector("#todo-empty-state"),
+    todoList: document.querySelector("#todo-list"),
+    mobilePanelButtons: document.querySelectorAll(".mobile-panel-button"),
   };
 
   let storageAvailable = true;
@@ -48,6 +80,8 @@
   let currentDateKey = getLocalDateKey();
   let viewDateKey = currentDateKey;
   let editingId = null;
+  let editingTodoId = null;
+  let mobilePanel = "schedule";
   let dragState = null;
   let suppressClickUntil = 0;
   let pageScrollLocked = false;
@@ -72,7 +106,7 @@
   }
 
   function createEmptyStore() {
-    return { version: 1, days: {} };
+    return { version: 1, days: {}, todos: [] };
   }
 
   function loadStore() {
@@ -84,6 +118,7 @@
       if (parsed?.version !== 1 || !parsed.days || typeof parsed.days !== "object") {
         throw new Error("Unsupported storage format");
       }
+      if (!Array.isArray(parsed.todos)) parsed.todos = [];
       return parsed;
     } catch (error) {
       storageAvailable = false;
@@ -119,6 +154,15 @@
     saveStore();
   }
 
+  function getTodos() {
+    return Array.isArray(store.todos) ? store.todos : [];
+  }
+
+  function setTodos(todos) {
+    store.todos = todos;
+    saveStore();
+  }
+
   function timeToMinutes(time) {
     if (time === "24:00") return END_HOUR * 60;
     const match = /^(\d{2}):(\d{2})$/.exec(time);
@@ -145,6 +189,22 @@
 
     elements.start.append(startFragment);
     elements.end.append(endFragment);
+  }
+
+  function populateTodoTimeOptions() {
+    const startFragment = document.createDocumentFragment();
+    const endFragment = document.createDocumentFragment();
+    startFragment.append(new Option("不指定", ""));
+    endFragment.append(new Option("不指定", ""));
+
+    for (let minutes = START_HOUR * 60; minutes <= END_HOUR * 60; minutes += TIME_STEP) {
+      const time = minutesToTime(minutes);
+      if (minutes < END_HOUR * 60) startFragment.append(new Option(time, time));
+      if (minutes > START_HOUR * 60) endFragment.append(new Option(time, time));
+    }
+
+    elements.todoStart.append(startFragment);
+    elements.todoEnd.append(endFragment);
   }
 
   function removeLegacyTimeOptions() {
@@ -239,8 +299,8 @@
     return getEvents().filter((event) => event.id !== excludedId && eventsOverlap(candidate, event));
   }
 
-  function calculateLayout(events) {
-    const sorted = [...events].sort((a, b) => {
+  function calculateLayout(items) {
+    const sorted = [...items].sort((a, b) => {
       return timeToMinutes(a.start) - timeToMinutes(b.start)
         || timeToMinutes(a.end) - timeToMinutes(b.end);
     });
@@ -253,27 +313,27 @@
       const columnEnds = [];
       const assignments = [];
 
-      cluster.forEach((event) => {
-        const start = timeToMinutes(event.start);
+      cluster.forEach((item) => {
+        const start = timeToMinutes(item.start);
         let column = columnEnds.findIndex((end) => end <= start);
         if (column === -1) column = columnEnds.length;
-        columnEnds[column] = timeToMinutes(event.end);
-        assignments.push({ event, column });
+        columnEnds[column] = timeToMinutes(item.end);
+        assignments.push({ item, column });
       });
 
       const columnCount = Math.max(columnEnds.length, 1);
-      assignments.forEach(({ event, column }) => {
-        layouts.set(event.id, { column, columnCount });
+      assignments.forEach(({ item, column }) => {
+        layouts.set(item.layoutKey, { column, columnCount });
       });
       cluster = [];
       clusterEnd = -1;
     };
 
-    sorted.forEach((event) => {
-      const start = timeToMinutes(event.start);
-      const end = timeToMinutes(event.end);
+    sorted.forEach((item) => {
+      const start = timeToMinutes(item.start);
+      const end = timeToMinutes(item.end);
       if (cluster.length && start >= clusterEnd) flushCluster();
-      cluster.push(event);
+      cluster.push(item);
       clusterEnd = Math.max(clusterEnd, end);
     });
     flushCluster();
@@ -312,6 +372,94 @@
     return card;
   }
 
+  function getTodoStartTime(todo) {
+    return todo.scheduledStart || todo.scheduledTime || "";
+  }
+
+  function getTodoEndTime(todo) {
+    const start = timeToMinutes(getTodoStartTime(todo));
+    const explicitEnd = todo.scheduledEnd || "";
+    if (Number.isFinite(timeToMinutes(explicitEnd))) return explicitEnd;
+    if (!Number.isFinite(start)) return "";
+    return minutesToTime(Math.min(start + 60, END_HOUR * 60));
+  }
+
+  function getTodoEndDate(todo) {
+    return todo.scheduledEndDate || todo.scheduledDate || "";
+  }
+
+  function getTodoTimeRange(todo) {
+    const start = getTodoStartTime(todo);
+    const end = getTodoEndTime(todo);
+    return { start, end };
+  }
+
+  function getTodoVisibleTimeRange(todo) {
+    const { start, end } = getTodoTimeRange(todo);
+    return {
+      start,
+      end: getTodoEndDate(todo) === todo.scheduledDate ? end : minutesToTime(END_HOUR * 60),
+    };
+  }
+
+  function hasScheduledTodoTime(todo) {
+    const { start, end } = getTodoVisibleTimeRange(todo);
+    return Boolean(todo.scheduledDate && start && end)
+      && Number.isFinite(timeToMinutes(start))
+      && Number.isFinite(timeToMinutes(end))
+      && timeToMinutes(end) > timeToMinutes(start);
+  }
+
+  function getScheduledTodosForView() {
+    return getTodos()
+      .filter((todo) => todo.scheduledDate === viewDateKey && hasScheduledTodoTime(todo))
+      .sort((a, b) => timeToMinutes(getTodoStartTime(a)) - timeToMinutes(getTodoStartTime(b))
+        || getTodoTimestamp(a.createdAt) - getTodoTimestamp(b.createdAt));
+  }
+
+  function createScheduledTodoCard(todo, layout) {
+    const priority = getTodoPriority(todo.priority);
+    const { start: startTime, end: endTime } = getTodoVisibleTimeRange(todo);
+    const endDate = getTodoEndDate(todo);
+    const start = timeToMinutes(startTime);
+    const end = timeToMinutes(endTime);
+    const top = ((start - START_HOUR * 60) / 60) * 100;
+    const height = ((end - start) / 60) * 100;
+    const gap = 6;
+    const width = 100 / layout.columnCount;
+
+    const card = document.createElement("article");
+    card.className = `scheduled-todo-card priority-${priority}${todo.completed ? " is-completed" : ""}`;
+    card.dataset.todoId = todo.id;
+    card.style.setProperty("--todo-top", `calc(var(--hour-height) * ${top / 100})`);
+    card.style.setProperty("--todo-height", `calc(var(--hour-height) * ${height / 100})`);
+    card.style.setProperty("--todo-left", `calc(${width * layout.column}% + ${layout.column * gap}px)`);
+    card.style.setProperty("--todo-width", `calc(${width}% - ${gap}px)`);
+
+    const checkbox = document.createElement("input");
+    checkbox.className = "scheduled-todo-checkbox";
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(todo.completed);
+    checkbox.setAttribute("aria-label", `${todo.completed ? "標記為未完成" : "標記為完成"}：${todo.title}`);
+
+    const button = document.createElement("button");
+    button.className = "scheduled-todo-main";
+    button.type = "button";
+    button.setAttribute("aria-label", `編輯 Todo：${todo.title}，${todo.scheduledDate} ${startTime} 到 ${endDate} ${getTodoEndTime(todo)}`);
+
+    const title = document.createElement("span");
+    title.className = "scheduled-todo-title";
+    title.textContent = todo.title;
+
+    const time = document.createElement("span");
+    time.className = "scheduled-todo-time";
+    time.textContent = `${formatTodoScheduleRange(todo)} · ${TODO_PRIORITY_LABELS[priority]}優先`;
+
+    button.append(title, time);
+    card.append(checkbox, button);
+    return card;
+  }
+
   function escapeHtml(value) {
     return String(value)
       .replaceAll("&", "&amp;")
@@ -320,27 +468,358 @@
       .replaceAll(">", "&gt;");
   }
 
+  function getTodoPriority(priority) {
+    return VALID_TODO_PRIORITIES.has(priority) ? priority : "medium";
+  }
+
+  function getTodoTimestamp(value) {
+    const timestamp = Date.parse(value || "");
+    return Number.isFinite(timestamp) ? timestamp : 0;
+  }
+
+  function formatTodoScheduleRange(todo, includeDate = false) {
+    const { start, end } = getTodoTimeRange(todo);
+    const endDate = getTodoEndDate(todo);
+    if (!todo.scheduledDate || !start || !end) return "";
+    if (endDate === todo.scheduledDate) {
+      return includeDate ? `${formatDateKey(todo.scheduledDate)} ${start}–${end}` : `${start}–${end}`;
+    }
+    return `${formatDateKey(todo.scheduledDate)} ${start}–${formatDateKey(endDate)} ${end}`;
+  }
+
+  function sortTodos(todos) {
+    return [...todos].sort((a, b) => {
+      if (Boolean(a.completed) !== Boolean(b.completed)) return a.completed ? 1 : -1;
+      const priorityDiff = TODO_PRIORITY_RANKS[getTodoPriority(a.priority)] - TODO_PRIORITY_RANKS[getTodoPriority(b.priority)];
+      if (priorityDiff) return priorityDiff;
+      return getTodoTimestamp(a.createdAt) - getTodoTimestamp(b.createdAt);
+    });
+  }
+
+  function createTodoItem(todo) {
+    const priority = getTodoPriority(todo.priority);
+    const item = document.createElement("li");
+    item.className = `todo-item priority-${priority}${todo.completed ? " is-completed" : ""}`;
+    item.dataset.todoId = todo.id;
+
+    const checkbox = document.createElement("input");
+    checkbox.className = "todo-checkbox";
+    checkbox.type = "checkbox";
+    checkbox.checked = Boolean(todo.completed);
+    checkbox.setAttribute("aria-label", `${todo.completed ? "標記為未完成" : "標記為完成"}：${todo.title}`);
+
+    const content = document.createElement("div");
+    content.className = "todo-content";
+
+    const title = document.createElement("p");
+    title.className = "todo-title";
+    title.textContent = todo.title;
+    content.append(title);
+
+    const meta = document.createElement("p");
+    meta.className = "todo-meta";
+    const priorityLabel = document.createElement("span");
+    priorityLabel.className = `todo-priority priority-${priority}`;
+    priorityLabel.textContent = `${TODO_PRIORITY_LABELS[priority]}優先`;
+    meta.append(priorityLabel);
+    if (hasScheduledTodoTime(todo)) {
+      const scheduleLabel = document.createElement("span");
+      scheduleLabel.textContent = formatTodoScheduleRange(todo, true);
+      meta.append(scheduleLabel);
+    }
+    if (todo.completedAt) {
+      const completedLabel = document.createElement("span");
+      completedLabel.textContent = "已完成";
+      meta.append(completedLabel);
+    }
+    content.append(meta);
+
+    if (todo.notes) {
+      const notes = document.createElement("p");
+      notes.className = "todo-notes";
+      notes.textContent = todo.notes;
+      content.append(notes);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "todo-actions";
+    actions.innerHTML = `
+      <button class="todo-action edit" type="button">編輯</button>
+      <button class="todo-action delete" type="button">刪除</button>`;
+    actions.querySelector(".edit").setAttribute("aria-label", `編輯 ${todo.title}`);
+    actions.querySelector(".delete").setAttribute("aria-label", `刪除 ${todo.title}`);
+
+    item.append(checkbox, content, actions);
+    return item;
+  }
+
+  function renderTodos() {
+    const todos = sortTodos(getTodos());
+    const fragment = document.createDocumentFragment();
+    const completedCount = todos.filter((todo) => todo.completed).length;
+
+    todos.forEach((todo) => fragment.append(createTodoItem(todo)));
+    elements.todoList.replaceChildren(fragment);
+    elements.todoEmptyState.hidden = todos.length > 0;
+    elements.todoCount.textContent = todos.length
+      ? `${todos.length} 個待辦・${completedCount} 個完成`
+      : "尚無待辦";
+    elements.clearCompletedTodosButton.disabled = completedCount === 0;
+
+    if (editingTodoId && !getTodos().some((todo) => todo.id === editingTodoId)) {
+      resetTodoForm();
+    }
+  }
+
+  function clearTodoFormError() {
+    elements.todoFormError.hidden = true;
+    elements.todoFormError.textContent = "";
+  }
+
+  function resetTodoForm() {
+    editingTodoId = null;
+    elements.todoForm.reset();
+    elements.todoForm.elements.priority.value = "medium";
+    elements.todoDate.value = "";
+    elements.todoEndDate.value = "";
+    elements.todoStart.value = "";
+    elements.todoEnd.value = "";
+    elements.todoDialogTitle.textContent = "新增 Todo";
+    elements.todoSubmitButton.textContent = "新增 Todo";
+    clearTodoFormError();
+  }
+
+  function getTodoCandidate() {
+    return {
+      title: elements.todoTitle.value.trim(),
+      priority: getTodoPriority(elements.todoForm.elements.priority.value),
+      scheduledDate: elements.todoDate.value,
+      scheduledEndDate: elements.todoEndDate.value,
+      scheduledStart: elements.todoStart.value,
+      scheduledEnd: elements.todoEnd.value,
+      scheduledTime: elements.todoStart.value,
+      notes: elements.todoNotes.value.trim(),
+    };
+  }
+
+  function validateTodoCandidate(candidate) {
+    if (!candidate.title) return "請輸入待辦事項。";
+    const hasAnyScheduleValue = Boolean(
+      candidate.scheduledDate
+        || candidate.scheduledEndDate
+        || candidate.scheduledStart
+        || candidate.scheduledEnd,
+    );
+    const hasEveryScheduleValue = Boolean(
+      candidate.scheduledDate
+        && candidate.scheduledEndDate
+        && candidate.scheduledStart
+        && candidate.scheduledEnd,
+    );
+    if (hasAnyScheduleValue && !hasEveryScheduleValue) {
+      return "如果要排進行程，開始日期、開始時間、結束日期與結束時間都需要選擇。";
+    }
+    if (Boolean(candidate.scheduledStart) !== Boolean(candidate.scheduledEnd)) {
+      return "如果要設定時間，開始與結束時間需要一起選擇。";
+    }
+    if (hasEveryScheduleValue) {
+      const start = timeToMinutes(candidate.scheduledStart);
+      const end = timeToMinutes(candidate.scheduledEnd);
+      if (!Number.isFinite(start) || !Number.isFinite(end)) return "請選擇有效的 Todo 時間。";
+      if (start < START_HOUR * 60 || start >= END_HOUR * 60 || end <= START_HOUR * 60 || end > END_HOUR * 60) {
+        return `Todo 時間需介於 ${minutesToTime(START_HOUR * 60)}–${minutesToTime(END_HOUR * 60)}。`;
+      }
+      const startDate = parseDateKey(candidate.scheduledDate).getTime();
+      const endDate = parseDateKey(candidate.scheduledEndDate).getTime();
+      if (!Number.isFinite(startDate) || !Number.isFinite(endDate)) return "請選擇有效的 Todo 日期。";
+      if (endDate < startDate || (endDate === startDate && end <= start)) {
+        return "Todo 結束日期時間必須晚於開始日期時間。";
+      }
+    }
+    return "";
+  }
+
+  function syncTodoEndFromStart() {
+    if (elements.todoDate.value && !elements.todoEndDate.value) {
+      elements.todoEndDate.value = elements.todoDate.value;
+    }
+
+    const start = timeToMinutes(elements.todoStart.value);
+    const end = timeToMinutes(elements.todoEnd.value);
+    if (Number.isFinite(start) && (!Number.isFinite(end) || end <= start)) {
+      elements.todoEnd.value = minutesToTime(Math.min(start + 60, END_HOUR * 60));
+      if (elements.todoDate.value && !elements.todoEndDate.value) {
+        elements.todoEndDate.value = elements.todoDate.value;
+      }
+    }
+  }
+
+  function openCreateTodoDialog() {
+    resetTodoForm();
+    elements.todoDialog.showModal();
+    syncModalState();
+    requestAnimationFrame(() => elements.todoTitle.focus());
+  }
+
+  function closeTodoDialog() {
+    if (elements.todoDialog.open) elements.todoDialog.close();
+  }
+
+  function handleTodoDialogClose() {
+    resetTodoForm();
+    syncModalState();
+    render();
+  }
+
+  function handleTodoSubmit(event) {
+    event.preventDefault();
+    const candidate = getTodoCandidate();
+    const error = validateTodoCandidate(candidate);
+    if (error) {
+      elements.todoFormError.textContent = error;
+      elements.todoFormError.hidden = false;
+      elements.todoTitle.focus();
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const todos = [...getTodos()];
+    if (editingTodoId) {
+      const index = todos.findIndex((todo) => todo.id === editingTodoId);
+      if (index === -1) {
+        elements.todoFormError.textContent = "找不到要編輯的 Todo，請重新選擇。";
+        elements.todoFormError.hidden = false;
+        return;
+      }
+      todos[index] = { ...todos[index], ...candidate, updatedAt: now };
+    } else {
+      todos.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        ...candidate,
+        completed: false,
+        createdAt: now,
+        updatedAt: now,
+        completedAt: null,
+      });
+    }
+
+    setTodos(todos);
+    resetTodoForm();
+    closeTodoDialog();
+    renderTodos();
+    render();
+  }
+
+  function openEditTodo(id) {
+    const todo = getTodos().find((item) => item.id === id);
+    if (!todo) return;
+    editingTodoId = id;
+    elements.todoTitle.value = todo.title;
+    elements.todoForm.elements.priority.value = getTodoPriority(todo.priority);
+    elements.todoDate.value = todo.scheduledDate || "";
+    elements.todoEndDate.value = getTodoEndDate(todo);
+    elements.todoStart.value = getTodoStartTime(todo);
+    elements.todoEnd.value = getTodoEndTime(todo);
+    elements.todoNotes.value = todo.notes || "";
+    elements.todoDialogTitle.textContent = "編輯 Todo";
+    elements.todoSubmitButton.textContent = "儲存修改";
+    clearTodoFormError();
+    elements.todoDialog.showModal();
+    syncModalState();
+    requestAnimationFrame(() => elements.todoTitle.focus());
+  }
+
+  function toggleTodoCompleted(id) {
+    const now = new Date().toISOString();
+    const todos = getTodos().map((todo) => {
+      if (todo.id !== id) return todo;
+      const completed = !todo.completed;
+      return {
+        ...todo,
+        completed,
+        completedAt: completed ? now : null,
+        updatedAt: now,
+      };
+    });
+    setTodos(todos);
+    render();
+  }
+
+  function deleteTodo(id) {
+    const todo = getTodos().find((item) => item.id === id);
+    if (!todo) return;
+    if (!window.confirm(`確定要刪除「${todo.title}」嗎？`)) return;
+    setTodos(getTodos().filter((item) => item.id !== id));
+    if (editingTodoId === id) closeTodoDialog();
+    render();
+  }
+
+  function clearCompletedTodos() {
+    const completedCount = getTodos().filter((todo) => todo.completed).length;
+    if (!completedCount) return;
+    if (!window.confirm(`確定要清除 ${completedCount} 個已完成 Todo 嗎？`)) return;
+    setTodos(getTodos().filter((todo) => !todo.completed));
+    if (editingTodoId && !getTodos().some((todo) => todo.id === editingTodoId)) closeTodoDialog();
+    render();
+  }
+
+  function setMobilePanel(panel) {
+    mobilePanel = VALID_MOBILE_PANELS.has(panel) ? panel : "schedule";
+    elements.workspaceLayout.dataset.mobilePanel = mobilePanel;
+    document.body.dataset.mobilePanel = mobilePanel;
+    elements.mobilePanelButtons.forEach((button) => {
+      const isActive = button.dataset.mobilePanelTarget === mobilePanel;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", String(isActive));
+    });
+    if (mobilePanel === "schedule") updateCurrentTime();
+  }
+
   function render() {
     const events = [...getEvents()].sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
-    const layouts = calculateLayout(events);
+    const scheduledTodos = getScheduledTodosForView();
+    const layoutItems = [
+      ...events.map((event) => ({
+        layoutKey: `event:${event.id}`,
+        start: event.start,
+        end: event.end,
+      })),
+      ...scheduledTodos.map((todo) => {
+        const { start, end } = getTodoVisibleTimeRange(todo);
+        return {
+          layoutKey: `todo:${todo.id}`,
+          start,
+          end,
+        };
+      }),
+    ];
+    const layouts = calculateLayout(layoutItems);
     const fragment = document.createDocumentFragment();
 
     events.forEach((event) => {
       const hasConflict = events.some((other) => other.id !== event.id && eventsOverlap(event, other));
-      fragment.append(createEventCard(event, layouts.get(event.id), hasConflict));
+      fragment.append(createEventCard(event, layouts.get(`event:${event.id}`), hasConflict));
+    });
+
+    scheduledTodos.forEach((todo) => {
+      fragment.append(createScheduledTodoCard(todo, layouts.get(`todo:${todo.id}`)));
     });
 
     elements.eventsLayer.replaceChildren(fragment);
-    elements.eventCount.textContent = events.length ? `${events.length} 筆行程` : "尚無行程";
+    const eventLabel = events.length ? `${events.length} 筆行程` : "尚無行程";
+    elements.eventCount.textContent = scheduledTodos.length
+      ? `${eventLabel}・${scheduledTodos.length} 個 Todo`
+      : eventLabel;
     refreshDateHeader();
     elements.appTitle.textContent = getViewTitle();
     document.title = getViewTitle();
     elements.appShell.setAttribute("data-view-date", viewDateKey);
     updateCurrentTime();
+    renderTodos();
   }
 
   function syncModalState() {
-    const modalOpen = elements.dialog.open || elements.infoDialog.open;
+    const modalOpen = elements.dialog.open || elements.todoDialog.open || elements.infoDialog.open;
     if (modalOpen && !pageScrollLocked) {
       lockedScrollY = window.scrollY;
       document.body.style.setProperty("--locked-scroll-offset", `-${lockedScrollY}px`);
@@ -359,11 +838,7 @@
   function preventModalBackgroundScroll(event) {
     if (!pageScrollLocked) return;
 
-    const openDialog = elements.dialog.open
-      ? elements.dialog
-      : elements.infoDialog.open
-        ? elements.infoDialog
-        : null;
+    const openDialog = [elements.dialog, elements.todoDialog, elements.infoDialog].find((dialog) => dialog.open) || null;
     if (!openDialog) {
       event.preventDefault();
       return;
@@ -776,7 +1251,7 @@
     const now = new Date();
     const minutes = now.getHours() * 60 + now.getMinutes();
     const inRange = viewDateKey === currentDateKey
-      && getEvents().length > 0
+      && (getEvents().length > 0 || getScheduledTodosForView().length > 0)
       && minutes >= START_HOUR * 60
       && minutes < END_HOUR * 60;
     elements.currentTimeLine.hidden = !inRange;
@@ -817,6 +1292,37 @@
   elements.closeInfoButton.addEventListener("click", closeInfoDialog);
   elements.confirmInfoButton.addEventListener("click", closeInfoDialog);
   elements.form.addEventListener("submit", handleSubmit);
+  elements.addTodoButton.addEventListener("click", openCreateTodoDialog);
+  elements.closeTodoButton.addEventListener("click", closeTodoDialog);
+  elements.todoForm.addEventListener("submit", handleTodoSubmit);
+  elements.todoTitle.addEventListener("input", clearTodoFormError);
+  elements.todoDate.addEventListener("input", () => {
+    if (elements.todoDate.value) elements.todoEndDate.value = elements.todoDate.value;
+    clearTodoFormError();
+  });
+  elements.todoEndDate.addEventListener("input", clearTodoFormError);
+  [elements.todoStart, elements.todoEnd].forEach((element) => {
+    element.addEventListener("change", () => {
+      syncTodoEndFromStart();
+      clearTodoFormError();
+    });
+  });
+  elements.cancelTodoEditButton.addEventListener("click", closeTodoDialog);
+  elements.clearCompletedTodosButton.addEventListener("click", clearCompletedTodos);
+  elements.mobilePanelButtons.forEach((button) => {
+    button.addEventListener("click", () => setMobilePanel(button.dataset.mobilePanelTarget));
+  });
+  elements.todoList.addEventListener("change", (event) => {
+    if (!event.target.matches(".todo-checkbox")) return;
+    const item = event.target.closest(".todo-item");
+    if (item) toggleTodoCompleted(item.dataset.todoId);
+  });
+  elements.todoList.addEventListener("click", (event) => {
+    const item = event.target.closest(".todo-item");
+    if (!item) return;
+    if (event.target.closest(".edit")) openEditTodo(item.dataset.todoId);
+    if (event.target.closest(".delete")) deleteTodo(item.dataset.todoId);
+  });
   [elements.start, elements.end].forEach((element) => {
     element.addEventListener("change", () => {
       adjustEndTimeAfterInvalidRange();
@@ -827,6 +1333,10 @@
     if (event.target === elements.dialog) closeDialog();
   });
   elements.dialog.addEventListener("close", handleEventDialogClose);
+  elements.todoDialog.addEventListener("click", (event) => {
+    if (event.target === elements.todoDialog) closeTodoDialog();
+  });
+  elements.todoDialog.addEventListener("close", handleTodoDialogClose);
   elements.infoDialog.addEventListener("click", (event) => {
     if (event.target === elements.infoDialog) closeInfoDialog();
   });
@@ -842,8 +1352,18 @@
   elements.eventsLayer.addEventListener("contextmenu", (event) => {
     if (dragState?.inputType === "touch" && event.target.closest(".event-card-main")) event.preventDefault();
   });
+  elements.eventsLayer.addEventListener("change", (event) => {
+    if (!event.target.matches(".scheduled-todo-checkbox")) return;
+    const card = event.target.closest(".scheduled-todo-card");
+    if (card) toggleTodoCompleted(card.dataset.todoId);
+  });
   elements.eventsLayer.addEventListener("click", (event) => {
     if (Date.now() < suppressClickUntil) return;
+    const scheduledTodoCard = event.target.closest(".scheduled-todo-card");
+    if (scheduledTodoCard && !event.target.closest(".scheduled-todo-checkbox")) {
+      openEditTodo(scheduledTodoCard.dataset.todoId);
+      return;
+    }
     const card = event.target.closest(".event-card");
     if (!card) return;
     if (event.target.closest(".delete")) deleteEvent(card.dataset.eventId);
@@ -857,7 +1377,9 @@
   window.addEventListener("focus", refreshDateIfNeeded);
 
   populateTimeOptions();
+  populateTodoTimeOptions();
   buildTimelineGrid();
+  setMobilePanel("schedule");
   render();
   window.setInterval(refreshDateIfNeeded, 60_000);
 

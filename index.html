@@ -12,7 +12,7 @@
     <link rel="manifest" href="manifest.webmanifest" />
     <link rel="icon" type="image/svg+xml" href="icons/app-icon.svg?v=4" />
     <link rel="apple-touch-icon" href="icons/icon-180.png?v=3" />
-    <link rel="stylesheet" href="styles.css?v=20" />
+    <link rel="stylesheet" href="styles.css?v=29" />
   </head>
   <body>
     <main class="app-shell">
@@ -39,29 +39,56 @@
 
       <div id="storage-notice" class="notice" role="alert" hidden></div>
 
-      <section class="schedule-card" aria-labelledby="schedule-heading">
-        <div class="schedule-heading-row">
-          <div>
-            <h2 id="schedule-heading">時間安排</h2>
-            <p>06:00–24:00</p>
+      <div id="workspace-layout" class="workspace-layout" data-mobile-panel="schedule">
+        <section class="schedule-card" aria-labelledby="schedule-heading">
+          <div class="schedule-heading-row">
+            <div>
+              <h2 id="schedule-heading">時間安排</h2>
+              <p>06:00–24:00</p>
+            </div>
+            <p id="event-count" class="event-count" aria-live="polite"></p>
           </div>
-          <p id="event-count" class="event-count" aria-live="polite"></p>
-        </div>
 
-        <div id="timeline" class="timeline" aria-label="今日時間軸">
-          <div id="timeline-grid" class="timeline-grid" aria-hidden="true"></div>
-          <div id="events-layer" class="events-layer"></div>
-          <div id="current-time-line" class="current-time-line" hidden>
-            <span id="current-time-label"></span>
+          <div id="timeline" class="timeline" aria-label="今日時間軸">
+            <div id="timeline-grid" class="timeline-grid" aria-hidden="true"></div>
+            <div id="events-layer" class="events-layer"></div>
+            <div id="current-time-line" class="current-time-line" hidden>
+              <span id="current-time-label"></span>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section class="todo-card" aria-labelledby="todo-heading">
+          <div class="todo-heading-row">
+            <div>
+              <p class="eyebrow">TODO LIST</p>
+              <h2 id="todo-heading">全域待辦</h2>
+            </div>
+            <div class="todo-summary">
+              <p id="todo-count" class="todo-count" aria-live="polite"></p>
+              <button id="add-todo-button" class="primary-button" type="button">
+                <span class="add-icon" aria-hidden="true"></span>
+                <span class="button-label">新增 Todo</span>
+              </button>
+              <button id="clear-completed-todos-button" class="text-button" type="button">清除已完成</button>
+            </div>
+          </div>
+
+          <p id="todo-empty-state" class="todo-empty-state">尚無待辦事項</p>
+          <ul id="todo-list" class="todo-list" aria-label="全域待辦清單"></ul>
+        </section>
+      </div>
     </main>
 
     <button id="add-event-button" class="primary-button" type="button">
       <span class="add-icon" aria-hidden="true"></span>
       <span class="button-label">新增行程</span>
     </button>
+
+    <nav class="mobile-panel-tools" aria-label="手機版內容切換">
+      <button class="mobile-panel-button is-active" type="button" data-mobile-panel-target="schedule" aria-pressed="true">行程</button>
+      <button class="mobile-panel-button" type="button" data-mobile-panel-target="todo" aria-pressed="false">Todo</button>
+    </nav>
 
     <div id="drag-time-indicator" class="drag-time-indicator" role="status" aria-live="polite" hidden>
       <span>移動至</span>
@@ -130,6 +157,75 @@
       </form>
     </dialog>
 
+    <dialog id="todo-dialog" class="event-dialog todo-dialog" aria-labelledby="todo-dialog-title">
+      <form id="todo-form" method="dialog" novalidate>
+        <div class="dialog-header">
+          <div>
+            <p class="eyebrow">TODO ITEM</p>
+            <h2 id="todo-dialog-title">新增 Todo</h2>
+          </div>
+          <button id="close-todo-dialog-button" class="icon-button" type="button" aria-label="關閉 Todo 視窗">×</button>
+        </div>
+
+        <div class="form-body">
+          <label class="field full-width">
+            <span>待辦事項 <em aria-hidden="true">*</em></span>
+            <input id="todo-title" name="title" type="text" maxlength="100" autocomplete="off" required />
+          </label>
+
+          <div class="time-fields todo-time-fields">
+            <label class="field">
+              <span>開始日期</span>
+              <input id="todo-date" name="date" type="date" />
+            </label>
+            <label class="field">
+              <span>開始時間</span>
+              <select id="todo-start" name="start"></select>
+            </label>
+            <span class="time-separator" aria-hidden="true">→</span>
+            <label class="field">
+              <span>結束日期</span>
+              <input id="todo-end-date" name="end-date" type="date" />
+            </label>
+            <label class="field">
+              <span>結束時間</span>
+              <select id="todo-end" name="end"></select>
+            </label>
+          </div>
+
+          <fieldset class="priority-field full-width">
+            <legend>優先級</legend>
+            <div class="priority-options">
+              <label class="priority-option high">
+                <input type="radio" name="priority" value="high" aria-label="高優先" />
+                <span>高</span>
+              </label>
+              <label class="priority-option medium">
+                <input type="radio" name="priority" value="medium" aria-label="中優先" checked />
+                <span>中</span>
+              </label>
+              <label class="priority-option low">
+                <input type="radio" name="priority" value="low" aria-label="低優先" />
+                <span>低</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <label class="field full-width">
+            <span>備註</span>
+            <textarea id="todo-notes" name="notes" rows="4" maxlength="300" placeholder="補充細節、連結或下一步（選填）"></textarea>
+          </label>
+
+          <p id="todo-form-error" class="form-message error-message" role="alert" hidden></p>
+        </div>
+
+        <div class="dialog-actions">
+          <button id="cancel-todo-edit-button" class="text-button" type="button">取消</button>
+          <button id="todo-submit-button" class="primary-button" type="submit">新增 Todo</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog id="info-dialog" class="event-dialog info-dialog" aria-labelledby="info-dialog-title">
       <div class="dialog-header">
         <div>
@@ -161,9 +257,13 @@
             <strong>處理重疊</strong>
             <span>行程可以重疊；儲存前會顯示提醒，時間軸上也會標示重疊狀態。</span>
           </li>
+          <li>
+            <strong>管理待辦</strong>
+            <span>在時間軸下方新增 Todo，可設定開始與結束時間、優先級、備註、勾選完成，並清除已完成項目。</span>
+          </li>
         </ol>
 
-        <p class="privacy-note"><strong>資料儲存：</strong>行程只會保存在目前瀏覽器的本機儲存空間，不會上傳到伺服器。清除網站資料或更換瀏覽器後，既有行程可能無法復原。</p>
+        <p class="privacy-note"><strong>資料儲存：</strong>行程與 Todo 只會保存在目前瀏覽器的本機儲存空間，不會上傳到伺服器。清除網站資料或更換瀏覽器後，既有資料可能無法復原。</p>
       </div>
 
       <div class="dialog-actions">
@@ -171,6 +271,6 @@
       </div>
     </dialog>
 
-    <script src="script.js?v=17"></script>
+    <script src="script.js?v=23"></script>
   </body>
 </html>
