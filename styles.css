@@ -1019,7 +1019,7 @@ textarea:hover {
 
 .todo-time-fields input[type="date"],
 .todo-time-fields select {
-  max-width: 100%;
+  max-width: 50%;
   min-width: 0;
 }
 
