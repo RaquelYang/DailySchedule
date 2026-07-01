@@ -1439,6 +1439,10 @@ textarea:hover {
     padding-left: 9px;
   }
 
+  #todo-date {
+    padding: 0;
+  }
+
   .dialog-header,
   .dialog-actions,
   .form-body,
