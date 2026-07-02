@@ -381,6 +381,10 @@ textarea:focus-visible {
   top: 10px;
 }
 
+.hour-label.is-obscured-by-current-time {
+  visibility: hidden;
+}
+
 .half-hour-line {
   position: absolute;
   top: 50%;

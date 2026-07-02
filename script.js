@@ -239,6 +239,27 @@
     elements.timelineGrid.append(fragment);
   }
 
+  function clearCurrentTimeOverlaps() {
+    elements.timelineGrid.querySelectorAll(".hour-label.is-obscured-by-current-time").forEach((label) => {
+      label.classList.remove("is-obscured-by-current-time");
+    });
+  }
+
+  function updateCurrentTimeOverlaps() {
+    clearCurrentTimeOverlaps();
+    if (elements.currentTimeLine.hidden) return;
+
+    const currentLabelRect = elements.currentTimeLabel.getBoundingClientRect();
+    elements.timelineGrid.querySelectorAll(".hour-label").forEach((label) => {
+      const labelRect = label.getBoundingClientRect();
+      const overlaps = currentLabelRect.left < labelRect.right
+        && currentLabelRect.right > labelRect.left
+        && currentLabelRect.top < labelRect.bottom
+        && currentLabelRect.bottom > labelRect.top;
+      label.classList.toggle("is-obscured-by-current-time", overlaps);
+    });
+  }
+
   const dateFormatter = new Intl.DateTimeFormat("zh-TW", {
     year: "numeric",
     month: "long",
@@ -1254,11 +1275,15 @@
       && minutes >= START_HOUR * 60
       && minutes < END_HOUR * 60;
     elements.currentTimeLine.hidden = !inRange;
-    if (!inRange) return;
+    if (!inRange) {
+      clearCurrentTimeOverlaps();
+      return;
+    }
 
     const offsetHours = (minutes - START_HOUR * 60) / 60;
     elements.currentTimeLine.style.setProperty("--current-top", `calc(var(--hour-height) * ${offsetHours})`);
     elements.currentTimeLabel.textContent = minutesToTime(minutes);
+    window.requestAnimationFrame(updateCurrentTimeOverlaps);
   }
 
   function refreshDateIfNeeded() {
