@@ -1439,7 +1439,7 @@ textarea:hover {
     padding-left: 9px;
   }
 
-  #todo-date {
+  #todo-date, #todo-end-date {
     padding: 0;
   }
 
