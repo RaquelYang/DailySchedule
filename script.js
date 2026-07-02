@@ -1251,7 +1251,6 @@
     const now = new Date();
     const minutes = now.getHours() * 60 + now.getMinutes();
     const inRange = viewDateKey === currentDateKey
-      && (getEvents().length > 0 || getScheduledTodosForView().length > 0)
       && minutes >= START_HOUR * 60
       && minutes < END_HOUR * 60;
     elements.currentTimeLine.hidden = !inRange;
