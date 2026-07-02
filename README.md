@@ -16,8 +16,11 @@
 ```text
 .
 |-- index.html             # App DOM 結構與 PWA metadata
-|-- styles.css             # 全站版面、行程卡片、Todo、Dialog 與 RWD 樣式
-|-- script.js              # 資料儲存、日期切換、表單、渲染與拖曳互動
+|-- styles.css             # CSS entrypoint，依序匯入 src/css/*
+|-- script.js              # ES module entrypoint，載入 src/js/main.js
+|-- src/
+|   |-- css/               # tokens、base、buttons、layout、schedule、todo、dialogs、responsive
+|   `-- js/                # app state、storage、schedule、todo、modal、drag、PWA registration
 |-- service-worker.js      # App Shell 快取與離線 fallback
 |-- manifest.webmanifest   # PWA manifest
 `-- icons/                 # PWA icon
@@ -45,6 +48,7 @@ http://localhost:8000/
 
 ```bash
 node --check script.js
+for file in src/js/*.js; do node --check "$file"; done
 ```
 
 提交前也建議確認 diff 沒有多餘空白或非預期檔案：
@@ -67,8 +71,9 @@ git status --short
 
 發版前請檢查：
 
-- 修改 `script.js` 時，同步更新 `index.html` 與 `service-worker.js` 內的 `script.js?v=...`。
-- 修改 `styles.css` 時，同步更新 `index.html` 與 `service-worker.js` 內的 `styles.css?v=...`。
+- 修改 `script.js` 或 `src/js/*` 時，同步更新 `index.html` 與 `service-worker.js` 內的 `script.js?v=...`。
+- 修改 `styles.css` 或 `src/css/*` 時，同步更新 `index.html` 與 `service-worker.js` 內的 `styles.css?v=...`。
+- 新增或移除任何 `src/js/*`、`src/css/*` 分檔時，同步更新 `service-worker.js` 的 `APP_SHELL` 清單。
 - 修改任何 App Shell 快取資源時，遞增 `service-worker.js` 的 `CACHE_NAME`，例如 `daily-schedule-v38` 改為 `daily-schedule-v39`。
 - 確認 `APP_SHELL` 內所有檔案都已部署且可存取，否則 `cache.addAll()` 會失敗，新的 Service Worker 無法完成安裝。
 

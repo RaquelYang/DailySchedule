@@ -1,0 +1,96 @@
+.primary-button,
+.secondary-button,
+.text-button,
+.icon-button {
+  border: 0;
+  border-radius: 999px;
+  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 0 20px;
+  color: white;
+  background: var(--accent);
+  box-shadow: 0 8px 18px rgba(35, 108, 80, 0.18);
+  font-weight: 750;
+}
+
+.primary-button:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+}
+
+.add-icon {
+  position: relative;
+  display: inline-block;
+  flex: 0 0 14px;
+  width: 14px;
+  height: 14px;
+}
+
+.add-icon::before,
+.add-icon::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.add-icon::after {
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+
+.secondary-button {
+  min-height: 42px;
+  padding: 0 18px;
+  color: var(--accent-dark);
+  background: var(--accent-soft);
+  font-weight: 700;
+}
+
+.text-button {
+  min-height: 42px;
+  padding: 0 20px;
+  border: 1px solid #c8d0c9;
+  color: var(--muted);
+  background: white;
+  font-weight: 700;
+}
+
+.text-button:hover {
+  border-color: #9eaaa1;
+  color: var(--ink);
+  background: #f1f3ef;
+}
+
+.icon-button {
+  width: 40px;
+  height: 40px;
+  color: var(--muted);
+  background: #f1f3ef;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(35, 108, 80, 0.28);
+  outline-offset: 2px;
+}
+
+.info-button:focus-visible {
+  outline: 3px solid rgba(35, 108, 80, 0.28);
+  outline-offset: 2px;
+}

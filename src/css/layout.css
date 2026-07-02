@@ -1,0 +1,15 @@
+.notice {
+  margin-bottom: 18px;
+  padding: 13px 16px;
+  border: 1px solid #e7c78c;
+  border-radius: 12px;
+  color: #71420e;
+  background: var(--warning-soft);
+}
+
+.workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr);
+  align-items: start;
+  gap: 24px;
+}

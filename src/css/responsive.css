@@ -1,0 +1,244 @@
+@media (max-width: 620px) {
+  :root {
+    --hour-height: 68px;
+    --label-width: 58px;
+  }
+
+  .app-shell {
+    width: min(100% - 24px, 980px);
+    padding-top: 28px;
+    padding-bottom: 164px;
+  }
+
+  body[data-mobile-panel="todo"] .app-shell {
+    padding-top: 12px;
+  }
+
+  body[data-mobile-panel="todo"] .app-header {
+    display: none;
+  }
+
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .app-brand {
+    align-items: flex-start;
+  }
+
+  .app-title-row {
+    gap: 8px;
+  }
+
+  .header-actions {
+    width: 100%;
+    padding-top: 0;
+    justify-content: flex-end;
+  }
+
+  .date-toggle-button {
+    min-width: 96px;
+    padding: 0 18px;
+  }
+
+  .info-button {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+  }
+
+  #add-event-button,
+  #add-todo-button {
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    min-height: 46px;
+    padding: 0;
+    gap: 0;
+    line-height: 1;
+  }
+
+  #add-event-button,
+  #add-todo-button {
+    position: fixed;
+    right: max(40px, env(safe-area-inset-right));
+    left: auto;
+    bottom: max(92px, calc(env(safe-area-inset-bottom) + 92px));
+    z-index: 21;
+  }
+
+  #add-event-button .button-label,
+  #add-todo-button .button-label {
+    display: none;
+  }
+
+  #add-event-button .add-icon,
+  #add-todo-button .add-icon {
+    display: block;
+    flex-basis: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  #add-event-button .add-icon::before,
+  #add-event-button .add-icon::after,
+  #add-todo-button .add-icon::before,
+  #add-todo-button .add-icon::after {
+    width: 16px;
+  }
+
+  .schedule-heading-row {
+    min-height: 76px;
+    padding: 16px 18px;
+  }
+
+  .workspace-layout {
+    display: block;
+  }
+
+  .workspace-layout[data-mobile-panel="schedule"] .todo-card,
+  .workspace-layout[data-mobile-panel="todo"] .schedule-card {
+    display: none;
+  }
+
+  body[data-mobile-panel="todo"] #add-event-button {
+    display: none;
+  }
+
+  .mobile-panel-tools {
+    position: fixed;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    max-width: 420px;
+    min-height: 58px;
+    margin: 0 auto;
+    padding: 6px;
+    border: 1px solid rgba(24, 34, 29, 0.1);
+    border-radius: 999px;
+    background: rgba(255, 254, 249, 0.94);
+    box-shadow: 0 18px 45px rgba(24, 34, 29, 0.22);
+    backdrop-filter: blur(14px);
+    z-index: 20;
+  }
+
+  .mobile-panel-button {
+    min-width: 0;
+    min-height: 46px;
+    border: 0;
+    border-radius: 999px;
+    color: var(--muted);
+    background: transparent;
+    font-weight: 800;
+  }
+
+  .mobile-panel-button.is-active {
+    color: white;
+    background: var(--accent);
+    box-shadow: 0 8px 18px rgba(35, 108, 80, 0.2);
+  }
+
+  .events-layer {
+    right: 10px;
+  }
+
+  .hour-label {
+    left: 8px;
+  }
+
+  .event-card-main {
+    padding-right: 36px;
+  }
+
+  .event-time {
+    font-size: 0.68rem;
+  }
+
+  .todo-heading-row {
+    flex-direction: column;
+    padding: 18px;
+  }
+
+  .todo-summary {
+    width: 100%;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .todo-summary .primary-button,
+  .todo-summary .text-button {
+    min-height: 42px;
+    padding: 0 14px;
+  }
+
+  .todo-summary #add-todo-button {
+    min-height: 46px;
+    padding: 0;
+  }
+
+  .todo-count {
+    white-space: normal;
+  }
+
+  .todo-empty-state {
+    padding: 22px 18px 26px;
+  }
+
+  .todo-list {
+    padding: 14px 18px 22px;
+  }
+
+  .todo-item {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .todo-actions {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
+
+  .time-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .time-separator {
+    display: none;
+  }
+
+  .todo-time-fields {
+    grid-template-columns: minmax(0, 1fr) minmax(94px, 108px);
+    column-gap: 10px;
+  }
+
+  .todo-time-fields input[type="date"],
+  .todo-time-fields select {
+    padding-right: 9px;
+    padding-left: 9px;
+  }
+
+  #todo-date, #todo-end-date {
+    padding: 0;
+  }
+
+  .dialog-header,
+  .dialog-actions,
+  .form-body,
+  .info-body {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}
